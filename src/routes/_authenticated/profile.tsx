@@ -79,7 +79,10 @@ function ProfilePage() {
     const { error } = await supabase
       .from("profiles")
       .upsert({ id: profile.id, ...form, birth_date: form.birth_date || null });
-    if (error) return toast.error("ما انحفظت البيانات", { description: error.message });
+    if (error) {
+      toast.error("ما انحفظت البيانات", { description: error.message });
+      return;
+    }
     toast.success("تم حفظ التغييرات");
     qc.invalidateQueries({ queryKey: ["profile"] });
   }
@@ -88,10 +91,12 @@ function ProfilePage() {
     e.preventDefault();
     const { error } = await supabase.auth.updateUser({
       password: pw.next,
-      // @ts-expect-error current_password is supported by Lovable Cloud auth
       current_password: pw.current,
-    });
-    if (error) return toast.error("ما تغيرت كلمة المرور", { description: error.message });
+    } as Parameters<typeof supabase.auth.updateUser>[0]);
+    if (error) {
+      toast.error("ما تغيرت كلمة المرور", { description: error.message });
+      return;
+    }
     toast.success("تم تغيير كلمة المرور");
     setPw({ current: "", next: "" });
   }

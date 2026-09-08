@@ -40,7 +40,10 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error("ما قدرنا ندخلك", { description: error.message });
+    if (error) {
+      toast.error("ما قدرنا ندخلك", { description: error.message });
+      return;
+    }
     toast.success("أهلاً فيك!");
     navigate({ to: "/create-game" });
   }
@@ -57,7 +60,10 @@ function AuthPage() {
       },
     });
     setLoading(false);
-    if (error) return toast.error("ما قدرنا نسجلك", { description: error.message });
+    if (error) {
+      toast.error("ما قدرنا نسجلك", { description: error.message });
+      return;
+    }
     if (!data.session) {
       toast.success("تم إنشاء الحساب", { description: "افحص بريدك وأكد الحساب عشان تدخل." });
       return;
@@ -69,7 +75,10 @@ function AuthPage() {
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
-    if (result.error) return toast.error("تعذر الدخول عبر Google");
+    if (result.error) {
+      toast.error("تعذر الدخول عبر Google");
+      return;
+    }
     if (result.redirected) return;
     navigate({ to: "/create-game" });
   }
