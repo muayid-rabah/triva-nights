@@ -16,6 +16,8 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CreateGameRouteImport } from './routes/create-game'
 import { Route as GiftsRouteImport } from './routes/gifts'
 import { Route as PackagesRouteImport } from './routes/packages'
+import { Route as PlayRouteImport } from './routes/play'
+import { Route as ResultRouteImport } from './routes/result'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 
 const IndexRoute = IndexRouteImport.update({
@@ -52,6 +54,16 @@ const PackagesRoute = PackagesRouteImport.update({
   path: '/packages',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultRoute = ResultRouteImport.update({
+  id: '/result',
+  path: '/result',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -65,6 +77,8 @@ export interface FileRoutesByFullPath {
   '/create-game': typeof CreateGameRoute
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
+  '/play': typeof PlayRoute
+  '/result': typeof ResultRoute
   '/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRoutesByTo {
@@ -74,6 +88,8 @@ export interface FileRoutesByTo {
   '/create-game': typeof CreateGameRoute
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
+  '/play': typeof PlayRoute
+  '/result': typeof ResultRoute
   '/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRoutesById {
@@ -85,6 +101,8 @@ export interface FileRoutesById {
   '/create-game': typeof CreateGameRoute
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
+  '/play': typeof PlayRoute
+  '/result': typeof ResultRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRouteTypes {
@@ -96,6 +114,8 @@ export interface FileRouteTypes {
     | '/create-game'
     | '/gifts'
     | '/packages'
+    | '/play'
+    | '/result'
     | '/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -105,6 +125,8 @@ export interface FileRouteTypes {
     | '/create-game'
     | '/gifts'
     | '/packages'
+    | '/play'
+    | '/result'
     | '/profile'
   id:
     | '__root__'
@@ -115,6 +137,8 @@ export interface FileRouteTypes {
     | '/create-game'
     | '/gifts'
     | '/packages'
+    | '/play'
+    | '/result'
     | '/_authenticated/profile'
   fileRoutesById: FileRoutesById
 }
@@ -126,6 +150,8 @@ export interface RootRouteChildren {
   CreateGameRoute: typeof CreateGameRoute
   GiftsRoute: typeof GiftsRoute
   PackagesRoute: typeof PackagesRoute
+  PlayRoute: typeof PlayRoute
+  ResultRoute: typeof ResultRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -179,6 +205,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PackagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/result': {
+      id: '/result'
+      path: '/result'
+      fullPath: '/result'
+      preLoaderRoute: typeof ResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
       path: '/profile'
@@ -208,6 +248,8 @@ const rootRouteChildren: RootRouteChildren = {
   CreateGameRoute: CreateGameRoute,
   GiftsRoute: GiftsRoute,
   PackagesRoute: PackagesRoute,
+  PlayRoute: PlayRoute,
+  ResultRoute: ResultRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
