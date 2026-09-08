@@ -10,13 +10,25 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as GiftsRouteImport } from './routes/gifts'
 import { Route as PackagesRouteImport } from './routes/packages'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -34,36 +46,58 @@ const PackagesRoute = PackagesRouteImport.update({
   path: '/packages',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
+  '/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
+  '/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/contact' | '/gifts' | '/packages'
+  fullPaths: '/' | '/auth' | '/contact' | '/gifts' | '/packages' | '/profile'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/contact' | '/gifts' | '/packages'
-  id: '__root__' | '/' | '/contact' | '/gifts' | '/packages'
+  to: '/' | '/auth' | '/contact' | '/gifts' | '/packages' | '/profile'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/contact'
+    | '/gifts'
+    | '/packages'
+    | '/_authenticated/profile'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   GiftsRoute: typeof GiftsRoute
   PackagesRoute: typeof PackagesRoute
@@ -76,6 +110,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -99,11 +147,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PackagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   GiftsRoute: GiftsRoute,
   PackagesRoute: PackagesRoute,
