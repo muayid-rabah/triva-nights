@@ -43,6 +43,13 @@
       "when": 1789322400000,
       "tag": "0005_curated_catalogue",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789408800000,
+      "tag": "0006_repair_existing_supabase",
+      "breakpoints": true
     }
   ]
 }
