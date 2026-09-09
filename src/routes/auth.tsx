@@ -2,19 +2,19 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { normalizePhone, phoneError } from "@/lib/phone";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "تسجيل الدخول | لمّة جيم" },
+      { title: "تسجيل الدخول | طقّها" },
       { name: "description", content: "سجل دخولك أو أنشئ حساب جديد وابدأ لعبتك المجانية." },
-      { property: "og:title", content: "الدخول إلى لمّة جيم" },
+      { property: "og:title", content: "الدخول إلى طقّها" },
       { property: "og:description", content: "حساب واحد يكفي لكل ألعابك وباقاتك." },
     ],
   }),
@@ -28,6 +28,8 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [countryCode, setCountryCode] = useState("+962");
+  const [phone, setPhone] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -50,18 +52,28 @@ function AuthPage() {
 
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
+    const normalizedPhone = normalizePhone(countryCode, phone);
+    const invalidPhone = phoneError(countryCode, phone);
+    if (invalidPhone) {
+      toast.error("رقم التلفون مش صحيح", { description: invalidPhone });
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { first_name: firstName, last_name: lastName },
+        data: { first_name: firstName, last_name: lastName, country_code: countryCode, phone: normalizedPhone },
       },
     });
     setLoading(false);
     if (error) {
-      toast.error("ما قدرنا نسجلك", { description: error.message });
+      const phoneLimit = error.message.includes("PHONE_ACCOUNT_LIMIT");
+      const weakPassword = /weak|easy to guess/i.test(error.message);
+      toast.error(phoneLimit ? "وصلت الحد المسموح لهالرقم" : "ما قدرنا نسجلك", {
+        description: phoneLimit ? "نفس رقم التلفون مسموح له بحسابين فقط." : weakPassword ? "كلمة المرور سهلة كثير. اختار كلمة أطول وأقوى." : error.message,
+      });
       return;
     }
     if (!data.session) {
@@ -72,22 +84,23 @@ function AuthPage() {
   }
 
   async function google() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
     });
-    if (result.error) {
+    if (error) {
       toast.error("تعذر الدخول عبر Google");
       return;
     }
-    if (result.redirected) return;
-    navigate({ to: "/create-game" });
+    // OAuth redirects away from the page. Social accounts claim a phone from
+    // their profile before they can begin a game.
   }
 
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-md px-4 py-12">
-        <h1 className="text-center text-3xl text-primary">حسابك في لمّة جيم</h1>
+        <h1 className="text-center text-3xl text-primary">حسابك بطقّها</h1>
 
         <div className="mt-8 rounded-3xl border border-border bg-card p-6">
           <Tabs defaultValue="signin">
@@ -128,6 +141,25 @@ function AuthPage() {
                   <Label htmlFor="email2">البريد الإلكتروني</Label>
                   <Input id="email2" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
+                <div className="grid grid-cols-[120px_1fr] gap-3">
+                  <div>
+                    <Label htmlFor="country">رمز الدولة</Label>
+                    <select
+                      id="country"
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value)}
+                      className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="+962">الأردن +962</option>
+                      <option value="+970">فلسطين +970</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">رقم التلفون</Label>
+                    <Input id="phone" type="tel" inputMode="numeric" autoComplete="tel-national" required value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9+]/g, ""))} placeholder={countryCode === "+970" ? "0591234567" : "0791234567"} />
+                  </div>
+                </div>
+                <p className="text-xs leading-5 text-muted-foreground">للحفاظ على عدالة اللعب، نفس الرقم بقدر يعمل حسابين كحد أقصى.</p>
                 <div>
                   <Label htmlFor="password2">كلمة المرور</Label>
                   <Input id="password2" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />

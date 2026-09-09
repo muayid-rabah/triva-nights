@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/gifts")({
   head: () => ({
     meta: [
-      { title: "قسم الهدايا | لمّة جيم" },
+      { title: "قسم الهدايا | طقّها" },
       { name: "description", content: "اهدِ أحبابك بطاقة لعبة كاملة مع رسالة خاصة منك." },
       { property: "og:title", content: "اهدِ أحبابك لعبة" },
       { property: "og:description", content: "بطاقة هدية تصل على البريد مع رسالتك." },

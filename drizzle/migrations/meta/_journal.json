@@ -8,6 +8,41 @@
       "when": 1788890395704,
       "tag": "0000_create_trivia_platform",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788976800000,
+      "tag": "0001_accounts_credits_comments",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789063200000,
+      "tag": "0002_jordanian_locale",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789149600000,
+      "tag": "0003_normalize_phone_claims",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789236000000,
+      "tag": "0004_usd_catalogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789322400000,
+      "tag": "0005_curated_catalogue",
+      "breakpoints": true
     }
   ]
 }

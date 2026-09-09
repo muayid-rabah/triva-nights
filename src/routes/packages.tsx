@@ -10,10 +10,10 @@ import { fetchPackages } from "@/lib/db";
 export const Route = createFileRoute("/packages")({
   head: () => ({
     meta: [
-      { title: "الباقات | لمّة جيم" },
+      { title: "الباقات | طقّها" },
       { name: "description", content: "اختر باقتك: لعبة وحدة، ٣ ألعاب، اشتراك شهري، أو باقة بطولة." },
-      { property: "og:title", content: "باقات لمّة جيم" },
-      { property: "og:description", content: "باقات مرنة تناسب الديوانية والتجمعات العائلية." },
+      { property: "og:title", content: "باقات طقّها" },
+      { property: "og:description", content: "باقات مرنة تناسب القعدات والتجمعات العائلية." },
     ],
   }),
   component: PackagesPage,
@@ -31,7 +31,7 @@ function PackagesPage() {
       <main className="mx-auto max-w-6xl px-4 py-12">
         <h1 className="text-center text-4xl text-primary">الباقات</h1>
         <p className="mt-3 text-center text-muted-foreground">
-          لعبة تجريبية مجانية لكل مستخدم جديد، وبعدها اختر الباقة اللي تناسب لمّتكم.
+          لعبتان تجريبيتان لكل مستخدم جديد، وبعدها اختاروا باقة تكمل كل ألعاب القعدة.
         </p>
 
         {isLoading ? (
@@ -51,7 +51,7 @@ function PackagesPage() {
                 <h2 className="text-2xl">{p.name}</h2>
                 <p className="mt-2 min-h-12 text-sm text-muted-foreground">{p.description}</p>
                 <p className="mt-4 font-display text-3xl text-gold">
-                  {p.price} <span className="text-base">{p.currency}</span>
+                  {p.price} <span className="text-base">USD</span>
                 </p>
                 <ul className="mt-4 space-y-2 text-sm">
                   <li className="flex items-center gap-2">
@@ -59,10 +59,10 @@ function PackagesPage() {
                     {p.games_count > 100 ? "ألعاب غير محدودة" : `${p.games_count} لعبة كاملة`}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-success" /> ٦ فئات و ٣٦ سؤال لكل لعبة
+                    <Check className="h-4 w-4 text-success" /> صالحة لألعاب طقّها، حروف، برا السالفة ومافيا
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-success" /> ٥ وسائل مساعدة لكل فريق
+                    <Check className="h-4 w-4 text-success" /> مكتبة أسئلة وفئات تتجدد باستمرار
                   </li>
                 </ul>
                 <Button

@@ -10,13 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { normalizePhone, phoneError } from "@/lib/phone";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
-      { title: "حسابي | لمّة جيم" },
+      { title: "حسابي | طقّها" },
       { name: "description", content: "عدّل بياناتك الشخصية وتابع رصيد ألعابك." },
-      { property: "og:title", content: "حسابي في لمّة جيم" },
+      { property: "og:title", content: "حسابي في طقّها" },
       { property: "og:description", content: "بياناتك، رصيدك، وألعابك في مكان واحد." },
     ],
   }),
@@ -24,13 +25,13 @@ export const Route = createFileRoute("/_authenticated/profile")({
 });
 
 const COUNTRIES = [
-  { code: "+965", label: "الكويت (+965)" },
+  { code: "+962", label: "الأردن (+962)" },
+  { code: "+970", label: "فلسطين (+970)" },
   { code: "+966", label: "السعودية (+966)" },
   { code: "+971", label: "الإمارات (+971)" },
   { code: "+974", label: "قطر (+974)" },
   { code: "+973", label: "البحرين (+973)" },
   { code: "+968", label: "عُمان (+968)" },
-  { code: "+962", label: "الأردن (+962)" },
 ];
 
 function ProfilePage() {
@@ -39,7 +40,7 @@ function ProfilePage() {
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
-    country_code: "+965",
+    country_code: "+962",
     phone: "",
     birth_date: "",
     avatar_url: "",
@@ -66,7 +67,7 @@ function ProfilePage() {
     setForm({
       first_name: profile.first_name ?? "",
       last_name: profile.last_name ?? "",
-      country_code: profile.country_code ?? "+965",
+      country_code: profile.country_code ?? "+962",
       phone: profile.phone ?? "",
       birth_date: profile.birth_date ?? "",
       avatar_url: profile.avatar_url ?? "",
@@ -75,10 +76,48 @@ function ProfilePage() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!profile?.id) return;
+    const { data: authResult, error: authError } = await supabase.auth.getUser();
+    const userId = authResult.user?.id;
+    if (authError || !userId) {
+      toast.error("انتهت جلستك", { description: "سجّل دخولك من جديد ثم حاول الحفظ." });
+      return;
+    }
+
+    // A profile is normally created by the auth trigger. This fallback covers
+    // accounts made before that trigger was installed, so the save button can
+    // never fail silently just because the profile row is missing.
+    if (!profile) {
+      const { error: createError } = await supabase.from("profiles").insert({ id: userId });
+      if (createError && !createError.message.includes("duplicate key")) {
+        toast.error("ما قدرنا نجهّز ملفك الشخصي", { description: createError.message });
+        return;
+      }
+    }
+
+    if (!profile?.phone) {
+      const invalidPhone = phoneError(form.country_code, form.phone);
+      if (invalidPhone) {
+        toast.error("رقم التلفون مش صحيح", { description: invalidPhone });
+        return;
+      }
+      const { error: claimError } = await supabase.rpc("claim_phone", {
+        p_country_code: form.country_code,
+        p_phone: normalizePhone(form.country_code, form.phone),
+      });
+      if (claimError) {
+        toast.error("ما قدرنا نثبت رقم التلفون", { description: claimError.message.includes("PHONE_ACCOUNT_LIMIT") ? "نفس الرقم مسموح له بحسابين فقط." : claimError.message });
+        return;
+      }
+    }
     const { error } = await supabase
       .from("profiles")
-      .upsert({ id: profile.id, ...form, birth_date: form.birth_date || null });
+      .update({
+        first_name: form.first_name,
+        last_name: form.last_name,
+        birth_date: form.birth_date || null,
+        avatar_url: form.avatar_url || null,
+      })
+      .eq("id", userId);
     if (error) {
       toast.error("ما انحفظت البيانات", { description: error.message });
       return;
@@ -128,7 +167,7 @@ function ProfilePage() {
               </Link>
             </Button>
             <span className="rounded-full bg-surface-2 px-4 py-2 text-sm font-bold text-gold">
-              الرصيد: {profile?.balance ?? 0} د.ك
+              الرصيد: {profile?.balance ?? 0} د.أ
             </span>
           </div>
         </div>
@@ -195,6 +234,7 @@ function ProfilePage() {
                         id="cc"
                         className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                         value={form.country_code}
+                        disabled={Boolean(profile?.phone)}
                         onChange={(e) => setForm({ ...form, country_code: e.target.value })}
                       >
                         {COUNTRIES.map((c) => (
@@ -206,7 +246,8 @@ function ProfilePage() {
                     </div>
                     <div>
                       <Label htmlFor="ph">رقم الهاتف</Label>
-                      <Input id="ph" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                      <Input id="ph" type="tel" inputMode="numeric" autoComplete="tel-national" required={!profile?.phone} readOnly={Boolean(profile?.phone)} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9+]/g, "") })} placeholder={form.country_code === "+970" ? "0591234567" : "0791234567"} />
+                      <p className="mt-1 text-xs text-muted-foreground">{profile?.phone ? "الرقم مثبت للحساب وما بنقدر نعدّله." : "اكتب الرقم مع الصفر أو بدونه؛ بنوحّده تلقائياً قبل التثبيت."}</p>
                     </div>
                   </div>
                   <div>

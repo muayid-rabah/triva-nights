@@ -11,36 +11,36 @@ export interface HelpDef {
 export const HELPS: HelpDef[] = [
   {
     key: "trap",
-    name: "الفخ",
-    short: "تعرف الجواب؟ ريّح الفريق الثاني وأعطه جواب مقلوب يضلله في دوره الجاي.",
+    name: "لبّسهم",
+    short: "معلومة مضللة بتوصل للفريق الثاني بالجولة الجاية. استعملها بذكاء.",
     color: "text-gold",
     icon: "shell",
   },
   {
     key: "rest",
-    name: "استريح",
-    short: "وقّف المؤقت واستشر شخص من عندك، وبعدين كمّل العد.",
+    name: "خذوا نفس",
+    short: "وقفوا المؤقت وخذوا دقيقة تشاور سريعة قبل ما تكملوا.",
     color: "text-destructive",
     icon: "hand",
   },
   {
     key: "two",
-    name: "جاوب جوابين",
-    short: "اختر جوابين بدل واحد، وإذا أحدهم صح تحسب لك النقطة.",
+    name: "جوابين",
+    short: "اختاروا جوابين بدل واحد، إذا واحد منهم صح النقطة إلكم.",
     color: "text-chart-4",
     icon: "hand-metal",
   },
   {
     key: "dig",
-    name: "الحفرة",
-    short: "احذف خيارين خاطئين من أربعة وخلّي السؤال أسهل.",
+    name: "فزعة",
+    short: "بنشلّك خيارين غلط وبنخففها عليكم.",
     color: "text-primary",
     icon: "shovel",
   },
   {
     key: "call",
-    name: "اتصال بصديق",
-    short: "اتصل بصديق ٣٠ ثانية يساعدك بجواب سريع.",
+    name: "رنّة لصاحبك",
+    short: "اتصل بصاحبك وخذوا جواب سريع قبل ما يطير الوقت.",
     color: "text-success",
     icon: "phone",
   },
@@ -54,6 +54,7 @@ export interface QuestionRow {
   text: string;
   choices: string[] | null;
   answer: string;
+  image_url?: string | null;
 }
 
 export interface CategoryRow {

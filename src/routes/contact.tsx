@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, MessageCircle, Phone } from "lucide-react";
+import { Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -11,9 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "تواصل معنا | لمّة جيم" },
+      { title: "تواصل معنا | طقّها" },
       { name: "description", content: "عندك سؤال أو اقتراح فئة جديدة؟ راسلنا وبنرد عليك بأسرع وقت." },
-      { property: "og:title", content: "تواصل مع لمّة جيم" },
+      { property: "og:title", content: "تواصل مع طقّها" },
       { property: "og:description", content: "استفسارات، اقتراحات فئات، وشراكات." },
     ],
   }),
@@ -54,10 +54,10 @@ function ContactPage() {
 
           <aside className="space-y-3">
             <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4">
-              <Mail className="h-5 w-5 text-primary" /> hello@lammahgame.com
+              <Mail className="h-5 w-5 text-primary" /> الدعم عبر نموذج التواصل
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4">
-              <Phone className="h-5 w-5 text-primary" /> ‎+965 5000 0000
+              <MessageCircle className="h-5 w-5 text-primary" /> دعم القعدة بالأردن وفلسطين
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4">
               <MessageCircle className="h-5 w-5 text-primary" /> رد خلال ٢٤ ساعة

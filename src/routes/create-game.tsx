@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Search, ShoppingBag, Shield, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site-header";
@@ -11,11 +11,13 @@ import { Input } from "@/components/ui/input";
 import { fetchCategories, fetchGroups, fetchQuestionsFor } from "@/lib/db";
 import { freshHelps, type CategoryRow } from "@/lib/game-types";
 import { useGame } from "@/lib/game-store";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/create-game")({
   head: () => ({
     meta: [
-      { title: "إنشاء لعبة | لمّة جيم" },
+      { title: "جهّز القعدة | طقّها" },
       { name: "description", content: "اختر ٦ فئات، سمِّ الفريقين، وابدأ التحدي بـ ٣٦ سؤال." },
       { property: "og:title", content: "أنشئ لعبتك الآن" },
       { property: "og:description", content: "مكتبة فئات واسعة تتوسع باستمرار." },
@@ -24,16 +26,30 @@ export const Route = createFileRoute("/create-game")({
   component: CreateGamePage,
 });
 
-const MODES = ["لمّة جيم", "لمّة الكبير", "كأس العالم", "إنشاء بطولة", "مضاويش"];
-
 function CreateGamePage() {
   const navigate = useNavigate();
   const { startGame } = useGame();
+  const { user, loading: authLoading } = useAuth();
   const [selected, setSelected] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [teamA, setTeamA] = useState("");
-  const [teamB, setTeamB] = useState("");
+  const [teamA, setTeamA] = useState("الفريق الأول");
+  const [teamB, setTeamB] = useState("الفريق الثاني");
+  const [starter, setStarter] = useState<0 | 1>(0);
   const [starting, setStarting] = useState(false);
+
+  const { data: access, isLoading: accessLoading, refetch: refetchAccess } = useQuery({
+    queryKey: ["game-access", user?.id],
+    enabled: Boolean(user),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("games_left, phone").eq("id", user!.id).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate({ to: "/auth", replace: true });
+  }, [authLoading, user, navigate]);
 
   const { data: groups = [] } = useQuery({ queryKey: ["groups"], queryFn: fetchGroups });
   const { data: categories = [], isLoading } = useQuery({
@@ -64,9 +80,29 @@ function CreateGamePage() {
   const ready = selected.length === 6 && teamA.trim() && teamB.trim();
 
   async function start() {
-    if (!ready) return;
+    if (!ready || !user) return;
+    if (!access?.phone) {
+      toast.info("ثبّت رقم تلفونك أول", { description: "بدنا رقمك قبل أول لعبة عشان تظل المحاولات عادلة." });
+      navigate({ to: "/profile" });
+      return;
+    }
     setStarting(true);
     try {
+      const { error: creditError } = await supabase.rpc("consume_game_credit");
+      if (creditError) {
+        if (creditError.message.includes("NO_GAMES_LEFT")) {
+          toast.info("خلصت اللعبتين المجانيات", { description: "اختار باقة جديدة وكمّل القعدة." });
+          navigate({ to: "/packages" });
+          return;
+        }
+        if (creditError.message.includes("PHONE_REQUIRED")) {
+          toast.info("ثبّت رقم تلفونك أول");
+          navigate({ to: "/profile" });
+          return;
+        }
+        throw creditError;
+      }
+      await refetchAccess();
       const questions = await fetchQuestionsFor(selected);
       const chosen = selected
         .map((id) => categories.find((c) => c.id === id))
@@ -77,7 +113,7 @@ function CreateGamePage() {
           { name: teamA.trim(), score: 0, helps: freshHelps() },
           { name: teamB.trim(), score: 0, helps: freshHelps() },
         ],
-        turn: 0,
+        turn: starter,
         categories: chosen,
         questions,
         used: [],
@@ -92,25 +128,23 @@ function CreateGamePage() {
     }
   }
 
+  if (authLoading || !user || accessLoading) {
+    return <div className="min-h-screen"><SiteHeader /><p className="py-24 text-center text-muted-foreground">بنجهّز حسابك…</p></div>;
+  }
+
   return (
     <div className="min-h-screen pb-28">
       <SiteHeader />
 
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <h1 className="text-center text-4xl text-primary">إنشاء لعبة</h1>
+        <h1 className="text-center text-4xl text-primary">جهّز القعدة</h1>
         <p className="mt-2 text-center text-muted-foreground">
-          اختر ٦ فئات — ٣ لكل فريق — وكل فئة فيها ٦ أسئلة من ١٠٠ إلى ٦٠٠ نقطة.
+          اختاروا ٦ فئات، سمّوا الفريقين، وباقي الحماس علينا.
         </p>
 
-        <div className="mt-5 flex flex-wrap justify-center gap-2">
-          {MODES.map((m) => (
-            <span
-              key={m}
-              className="rounded-full border border-border bg-surface px-4 py-2 text-sm font-bold text-muted-foreground"
-            >
-              {m}
-            </span>
-          ))}
+        <div className="mx-auto mt-5 flex max-w-xl items-center justify-between rounded-2xl border border-gold/40 bg-surface px-4 py-3 text-sm">
+          <span>رصيدك الحالي: <b className="text-gold">{access?.games_left ?? 0} لعبة</b></span>
+          {(access?.games_left ?? 0) === 0 ? <Button asChild size="sm" variant="outline"><Link to="/packages">اشترِ لعبة جديدة</Link></Button> : <span className="text-muted-foreground">إلك لعبتين مجاناً بالحساب</span>}
         </div>
 
         <div className="mx-auto mt-8 flex max-w-2xl items-center gap-2">
@@ -119,7 +153,7 @@ function CreateGamePage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث عن فئة معينة"
+              placeholder="دوّروا على فئة"
               className="h-12 rounded-2xl pe-11 text-base"
               aria-label="ابحث عن فئة"
             />
@@ -130,7 +164,7 @@ function CreateGamePage() {
         </div>
 
         <div className="sticky top-[68px] z-30 mt-6 rounded-2xl border border-border bg-background/95 px-4 py-3 text-center text-sm font-bold backdrop-blur">
-          اخترت <span className="text-primary">{selected.length}</span> من ٦ فئات
+          اخترتوا <span className="text-primary">{selected.length}</span> من ٦ فئات
         </div>
 
         {isLoading && <p className="mt-10 text-center text-muted-foreground">جاري تحميل الفئات…</p>}
@@ -169,7 +203,7 @@ function CreateGamePage() {
         })}
 
         <section className="mt-14 rounded-3xl border border-border bg-card p-6">
-          <h2 className="text-center text-2xl">حدد معلومات الفرق</h2>
+          <h2 className="text-center text-2xl">سمّوا الفرق</h2>
           <div className="mx-auto mt-6 grid max-w-2xl gap-4 sm:grid-cols-2">
             <div className="flex items-center gap-2 rounded-2xl bg-surface-2 px-3">
               <Shield className="h-5 w-5 shrink-0 text-primary" />
@@ -192,6 +226,13 @@ function CreateGamePage() {
               />
             </div>
           </div>
+          <div className="mx-auto mt-6 max-w-2xl rounded-2xl bg-surface p-3 text-center">
+            <p className="text-sm font-bold text-muted-foreground">مين ببلّش أول جولة؟</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setStarter(0)} className={starter === 0 ? "heritage-primary rounded-xl px-3 py-2 font-bold text-primary-foreground" : "rounded-xl bg-surface-2 px-3 py-2 font-bold"}>{teamA || "الفريق الأول"}</button>
+              <button type="button" onClick={() => setStarter(1)} className={starter === 1 ? "heritage-primary rounded-xl px-3 py-2 font-bold text-primary-foreground" : "rounded-xl bg-surface-2 px-3 py-2 font-bold"}>{teamB || "الفريق الثاني"}</button>
+            </div>
+          </div>
         </section>
       </main>
 
@@ -199,10 +240,10 @@ function CreateGamePage() {
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <Button
             className="h-12 flex-1 text-lg"
-            disabled={!ready || starting}
+            disabled={!ready || starting || (access?.games_left ?? 0) === 0}
             onClick={start}
           >
-            {starting ? "جاري التجهيز…" : "ابدأ اللعب"}
+            {starting ? "بنجهّز الجولة…" : (access?.games_left ?? 0) === 0 ? "اشترِ لعبة جديدة" : "يلا نبدأ"}
           </Button>
         </div>
       </div>

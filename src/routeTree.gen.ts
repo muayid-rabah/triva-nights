@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as ArcadeRouteImport } from './routes/arcade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CreateGameRouteImport } from './routes/create-game'
+import { Route as GamesRouteImport } from './routes/games'
 import { Route as GiftsRouteImport } from './routes/gifts'
 import { Route as PackagesRouteImport } from './routes/packages'
 import { Route as PlayRouteImport } from './routes/play'
@@ -30,6 +32,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArcadeRoute = ArcadeRouteImport.update({
+  id: '/arcade',
+  path: '/arcade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -43,6 +50,11 @@ const ContactRoute = ContactRouteImport.update({
 const CreateGameRoute = CreateGameRouteImport.update({
   id: '/create-game',
   path: '/create-game',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesRoute = GamesRouteImport.update({
+  id: '/games',
+  path: '/games',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GiftsRoute = GiftsRouteImport.update({
@@ -78,9 +90,11 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/create-game': typeof CreateGameRoute
+  '/games': typeof GamesRoute
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
   '/play': typeof PlayRoute
@@ -90,9 +104,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/create-game': typeof CreateGameRoute
+  '/games': typeof GamesRoute
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
   '/play': typeof PlayRoute
@@ -104,9 +120,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/create-game': typeof CreateGameRoute
+  '/games': typeof GamesRoute
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
   '/play': typeof PlayRoute
@@ -118,9 +136,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/arcade'
     | '/auth'
     | '/contact'
     | '/create-game'
+    | '/games'
     | '/gifts'
     | '/packages'
     | '/play'
@@ -130,9 +150,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/arcade'
     | '/auth'
     | '/contact'
     | '/create-game'
+    | '/games'
     | '/gifts'
     | '/packages'
     | '/play'
@@ -143,9 +165,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/arcade'
     | '/auth'
     | '/contact'
     | '/create-game'
+    | '/games'
     | '/gifts'
     | '/packages'
     | '/play'
@@ -157,9 +181,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  ArcadeRoute: typeof ArcadeRoute
   AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   CreateGameRoute: typeof CreateGameRoute
+  GamesRoute: typeof GamesRoute
   GiftsRoute: typeof GiftsRoute
   PackagesRoute: typeof PackagesRoute
   PlayRoute: typeof PlayRoute
@@ -182,6 +208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/arcade': {
+      id: '/arcade'
+      path: '/arcade'
+      fullPath: '/arcade'
+      preLoaderRoute: typeof ArcadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -201,6 +234,13 @@ declare module '@tanstack/react-router' {
       path: '/create-game'
       fullPath: '/create-game'
       preLoaderRoute: typeof CreateGameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games': {
+      id: '/games'
+      path: '/games'
+      fullPath: '/games'
+      preLoaderRoute: typeof GamesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gifts': {
@@ -264,9 +304,11 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  ArcadeRoute: ArcadeRoute,
   AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   CreateGameRoute: CreateGameRoute,
+  GamesRoute: GamesRoute,
   GiftsRoute: GiftsRoute,
   PackagesRoute: PackagesRoute,
   PlayRoute: PlayRoute,

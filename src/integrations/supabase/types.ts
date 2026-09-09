@@ -79,6 +79,33 @@ export type Database = {
         }
         Relationships: []
       }
+      comments: {
+        Row: {
+          body: string
+          created_at: string
+          display_name: string
+          hidden: boolean
+          id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          display_name: string
+          hidden?: boolean
+          id?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          display_name?: string
+          hidden?: boolean
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       games: {
         Row: {
           category_ids: string[]
@@ -283,12 +310,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_phone: {
+        Args: {
+          p_country_code: string
+          p_phone: string
+        }
+        Returns: undefined
+      }
+      consume_game_credit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      submit_comment: {
+        Args: {
+          p_body: string
+        }
+        Returns: Database["public"]["Tables"]["comments"]["Row"]
       }
     }
     Enums: {

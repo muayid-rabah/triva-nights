@@ -118,7 +118,7 @@ CREATE TABLE public.packages (
   description text,
   games_count integer NOT NULL DEFAULT 1,
   price numeric NOT NULL,
-  currency text NOT NULL DEFAULT 'KWD',
+  currency text NOT NULL DEFAULT 'JOD',
   badge text,
   sort_order integer NOT NULL DEFAULT 0
 );
@@ -162,10 +162,10 @@ USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- SEED: PACKAGES
 INSERT INTO public.packages (slug,name,description,games_count,price,currency,badge,sort_order) VALUES
-('single','لعبة وحدة','باقة لعبة واحدة كاملة بـ ٦ فئات و ٣٦ سؤال',1,3.5,'KWD',NULL,1),
-('triple','٣ ألعاب','ثلاث ألعاب كاملة بسعر مخفض للتجمعات',3,8,'KWD','الأكثر مبيعاً',2),
-('monthly','اشتراك شهري','ألعاب غير محدودة لمدة شهر كامل',999,15,'KWD','وفر أكثر',3),
-('tournament','باقة بطولة','٨ ألعاب بنظام بطولة بين الفرق',8,20,'KWD',NULL,4);
+('single','لعبة وحدة','باقة لعبة واحدة كاملة بـ ٦ فئات و ٣٦ سؤال',1,5,'JOD',NULL,1),
+('triple','٣ ألعاب','ثلاث ألعاب كاملة بسعر مخفض للتجمعات',3,12,'JOD','الأكثر مبيعاً',2),
+('monthly','اشتراك شهري','ألعاب غير محدودة لمدة شهر كامل',999,20,'JOD','وفر أكثر',3),
+('tournament','باقة بطولة','٨ ألعاب بنظام بطولة بين الفرق',8,30,'JOD',NULL,4);
 
 -- SEED: GROUPS
 INSERT INTO public.category_groups (slug,name,sort_order) VALUES

@@ -8,7 +8,7 @@ import { useGame } from "@/lib/game-store";
 export const Route = createFileRoute("/result")({
   head: () => ({
     meta: [
-      { title: "النتيجة النهائية | لمّة جيم" },
+      { title: "النتيجة النهائية | طقّها" },
       { name: "description", content: "شوف الفريق الفائز ومقارنة النقاط بعد ٣٦ سؤال." },
       { property: "og:title", content: "نتيجة اللعبة" },
       { property: "og:description", content: "من كسب اللمّة هالمرة؟" },
@@ -81,7 +81,7 @@ function ResultPage() {
             navigate({ to: "/create-game" });
           }}
         >
-          <RotateCcw className="ms-2 h-5 w-5" /> لعبة جديدة
+          <RotateCcw className="ms-2 h-5 w-5" /> يلا جولة جديدة
         </Button>
       </main>
     </div>

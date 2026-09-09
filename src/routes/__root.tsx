@@ -5,13 +5,14 @@ import {
   createRootRouteWithContext,
   useRouter,
   HeadContent,
+  redirect,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { GameProvider } from "../lib/game-store";
+import { ThemeProvider } from "../lib/theme";
 import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
@@ -39,10 +40,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -75,11 +72,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: ({ location }) => {
+    // Keep the Arabic address requested for the games hub working while the
+    // filesystem route stays ASCII-safe on Windows and Cloudflare builds.
+    if (decodeURIComponent(location.pathname) === "/العاب") {
+      throw redirect({ to: "/games", replace: true });
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "لمّة جيم | لعبة أسئلة جماعية عربية" },
+      { title: "طقّها | لعبة القعدة الأردنية" },
       {
         name: "description",
         content: "لعبة تحدي جماعية: ٦ فئات، ٣٦ سؤال، و٣ وسائل مساعدة لكل فريق.",
@@ -93,9 +97,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;500;700;900&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Rakkas&family=Tajawal:wght@400;500;700;900&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
     ],
   }),
   shellComponent: RootShell,
@@ -123,11 +127,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GameProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <Toaster position="top-center" richColors />
-      </GameProvider>
+      <ThemeProvider>
+        <GameProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster position="top-center" richColors />
+        </GameProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

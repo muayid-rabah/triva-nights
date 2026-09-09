@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import type { CategoryRow } from "@/lib/game-types";
 import { categoryImage } from "@/lib/category-images";
 import { cn } from "@/lib/utils";
+import { CategoryArtwork } from "./category-artwork";
 
 export function CategoryCard({
   category,
@@ -22,7 +23,7 @@ export function CategoryCard({
       onClick={onToggle}
       disabled={disabled && !selected}
       className={cn(
-        "card-hover group relative flex w-full flex-col overflow-hidden rounded-2xl border bg-card p-2 text-center disabled:opacity-40",
+        "heritage-card card-hover group relative flex w-full flex-col overflow-hidden rounded-2xl border bg-card p-2 text-center disabled:opacity-40",
         selected ? "border-primary glow-primary" : "border-border",
       )}
     >
@@ -37,7 +38,7 @@ export function CategoryCard({
             className="h-full w-full object-cover"
           />
         ) : (
-          <span className="text-5xl">{category.emoji ?? "❓"}</span>
+          <CategoryArtwork category={category} />
         )}
       </div>
       <span className="mt-2 truncate px-1 pb-1 text-sm font-bold">{category.name}</span>
