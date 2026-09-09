@@ -86,3 +86,7 @@ GRANT EXECUTE ON FUNCTION public.submit_comment(text) TO authenticated;
 
 REVOKE UPDATE ON public.profiles FROM authenticated;
 GRANT UPDATE (first_name, last_name, birth_date, avatar_url) ON public.profiles TO authenticated;
+
+-- Supabase REST reads PostgREST's schema cache. Reload it immediately so
+-- /rest/v1/rpc/claim_phone is available without waiting for a cache cycle.
+NOTIFY pgrst, 'reload schema';

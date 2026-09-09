@@ -105,7 +105,14 @@ function ProfilePage() {
         p_phone: normalizePhone(form.country_code, form.phone),
       });
       if (claimError) {
-        toast.error("ما قدرنا نثبت رقم التلفون", { description: claimError.message.includes("PHONE_ACCOUNT_LIMIT") ? "نفس الرقم مسموح له بحسابين فقط." : claimError.message });
+        const rpcMissing = claimError.message.includes("Could not find the function") || claimError.code === "PGRST202";
+        toast.error("ما قدرنا نثبت رقم التلفون", {
+          description: rpcMissing
+            ? "دالة تثبيت الهاتف غير مفعّلة في Supabase. شغّل 0006_repair_existing_supabase.sql ثم نفّذ: NOTIFY pgrst, 'reload schema';"
+            : claimError.message.includes("PHONE_ACCOUNT_LIMIT")
+              ? "نفس الرقم مسموح له بحسابين فقط."
+              : claimError.message,
+        });
         return;
       }
     }
