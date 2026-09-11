@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { arcadeGame, type ArcadeGameSlug } from "@/lib/arcade-catalog";
 import { AUCTION_QUESTIONS, AUCTION_TWISTS } from "@/lib/auction-bank";
+import { createLetterBoard, findWinningPath, type HuroofOwner } from "@/lib/huroof-engine";
 
 export const Route = createFileRoute("/arcade")({
   validateSearch: (search: Record<string, unknown>) => ({ game: typeof search.game === "string" ? search.game : "taqha" }),
@@ -17,7 +18,12 @@ export const Route = createFileRoute("/arcade")({
 
 type Stage = "room" | "setup" | "play";
 type AuctionKind = "categories" | "billion";
-type GameSession = { teams: [string, string]; players: string[]; auction?: { kind: AuctionKind; rounds: number; maxBid: number; slots: number } };
+type GameSession = {
+  teams: [string, string];
+  players: string[];
+  huroof?: { size: 4 | 5 | 6; rounds: number; buzzer: boolean; seed: number };
+  auction?: { kind: AuctionKind; rounds: number; maxBid: number; slots: number };
+};
 const EMPTY_SESSION: GameSession = { teams: ["فريق السرو", "فريق الكرمل"], players: [] };
 
 function ArcadePage() {
@@ -28,6 +34,28 @@ function ArcadePage() {
   const [stage, setStage] = useState<Stage>("room");
   const [mode, setMode] = useState<PlayMode>("single");
   const [session, setSession] = useState<GameSession>(EMPTY_SESSION);
+  const [restored, setRestored] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(`taqha:arcade:${game.slug}`);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { stage?: Stage; mode?: PlayMode; session?: GameSession };
+        if (parsed.stage && parsed.stage !== "room" && parsed.session) {
+          setStage(parsed.stage); setMode(parsed.mode ?? "single"); setSession(parsed.session);
+        }
+      }
+    } catch { /* A malformed or unavailable local-storage entry must not block play. */ }
+    setRestored(true);
+  }, [game.slug]);
+
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      if (stage === "room") window.localStorage.removeItem(`taqha:arcade:${game.slug}`);
+      else window.localStorage.setItem(`taqha:arcade:${game.slug}`, JSON.stringify({ stage, mode, session }));
+    } catch { /* Storage is an enhancement; the game continues without it. */ }
+  }, [game.slug, mode, restored, session, stage]);
 
   function startRoom(selectedMode: PlayMode, players: string[] = []) {
     setMode(selectedMode);
@@ -76,15 +104,17 @@ function GameSetup({ game, mode, initialPlayers, onStart }: { game: ArcadeGameSl
 
 function HuroofSetup({ mode, onStart }: { mode: PlayMode; onStart: (session: GameSession) => void }) {
   const [rounds, setRounds] = useState(1);
-  const [cells, setCells] = useState(20);
+  const [size, setSize] = useState<4 | 5 | 6>(5);
+  const [buzzer, setBuzzer] = useState(false);
   const [teamA, setTeamA] = useState("فريق السرو");
   const [teamB, setTeamB] = useState("فريق الكرمل");
   return <section className="arcade-panel arcade-huroof mx-auto max-w-3xl rounded-[2rem] p-6 sm:p-9">
     <span className="eyebrow">حروف · {mode === "online" ? "غرفة جوالات" : "جهاز واحد"}</span><h1 className="mt-3 text-4xl">شبكة سيطرة، مش تكوين كلمات</h1><p className="mt-2 text-muted-foreground">جاوبوا سؤال، اختاروا خلية، ووصلوا خط بلون فريقكم: الأخضر من فوق لتحت والعنابي من اليمين للشمال.</p>
     <div className="mt-7 grid gap-4 sm:grid-cols-2"><label className="block text-sm font-bold">اسم الفريق الأخضر<Input value={teamA} onChange={(event) => setTeamA(event.target.value)} className="mt-2 h-11 bg-background/45" /></label><label className="block text-sm font-bold">اسم الفريق العنابي<Input value={teamB} onChange={(event) => setTeamB(event.target.value)} className="mt-2 h-11 bg-background/45" /></label></div>
-    <div className="mt-6 grid gap-6 sm:grid-cols-2"><SetupChoices title="الجولات للفوز" values={[1, 2, 3]} selected={rounds} onChange={setRounds} /><SetupChoices title="حجم الشبكة" values={[16, 20, 24]} selected={cells} onChange={setCells} /></div>
+    <div className="mt-6 grid gap-6 sm:grid-cols-2"><SetupChoices title="الجولات للفوز" values={[1, 2, 3]} selected={rounds} onChange={setRounds} /><SetupChoices title="حجم الشبكة" values={[4, 5, 6]} selected={size} onChange={(value) => setSize(value as 4 | 5 | 6)} /></div>
+    <div className="mt-5 flex flex-wrap gap-2"><ChoiceButton active={!buzzer} onClick={() => setBuzzer(false)}>وضع المقدم</ChoiceButton><ChoiceButton active={buzzer} onClick={() => setBuzzer(true)}>وضع الجرس</ChoiceButton></div>
     <div className="huroof-rules mt-7"><Check className="h-5 w-5" /><p><b>مدير الجلسة</b> بقرأ السؤال للفريق. الجواب الصح بخليه يملك الخلية ويكمل دوره؛ الغلط بمرّر الدور للفريق الثاني.</p></div>
-    <Button className="mt-8" onClick={() => onStart({ teams: [teamA.trim() || "فريق السرو", teamB.trim() || "فريق الكرمل"], players: [] })}><Play /> بلّشوا حروف</Button>
+    <Button className="mt-8" onClick={() => onStart({ teams: [teamA.trim() || "فريق السرو", teamB.trim() || "فريق الكرمل"], players: [], huroof: { size, rounds, buzzer, seed: Math.random() } })}><Play /> بلّشوا حروف</Button>
   </section>;
 }
 
@@ -152,49 +182,93 @@ function AuctionPlay({ session }: { session: GameSession }) {
   const config = session.auction ?? { kind: "categories" as const, rounds: 3, maxBid: 15, slots: 19 };
   const [phase, setPhase] = useState<"pick" | "bid" | "challenge" | "result" | "twist">("pick"); const [questionIndex, setQuestionIndex] = useState(0); const [markedAnswers, setMarkedAnswers] = useState<string[]>([]);
   const [bid, setBid] = useState(3); const [bidder, setBidder] = useState<0 | 1>(0); const [winner, setWinner] = useState<0 | 1 | null>(null);
+  const [customBid, setCustomBid] = useState(""); const [bidError, setBidError] = useState("");
   const [correct, setCorrect] = useState(0); const [seconds, setSeconds] = useState(45); const [scores, setScores] = useState<[number, number]>([0, 0]); const [round, setRound] = useState(1);
   const [playerIndex, setPlayerIndex] = useState(0); const [budgets, setBudgets] = useState<[number, number]>([1000, 1000]); const [squads, setSquads] = useState<[typeof BILLION_PLAYERS, typeof BILLION_PLAYERS]>([[], []]);
   const teams = session.teams; const featured = BILLION_PLAYERS[playerIndex % BILLION_PLAYERS.length]; const question = AUCTION_QUESTIONS[questionIndex % AUCTION_QUESTIONS.length];
   useEffect(() => { if (phase !== "challenge" || seconds <= 0) return; const id = window.setInterval(() => setSeconds((value) => value - 1), 1000); return () => window.clearInterval(id); }, [phase, seconds]);
-  function beginBid() { setBid(question.suggestedBid); setBidder(0); setWinner(null); setPhase("bid"); }
+  function beginBid() { setBid(question.suggestedBid); setCustomBid(""); setBidError(""); setBidder(0); setWinner(null); setPhase("bid"); }
+  function placeQuestionBid(amount: number) {
+    if (!Number.isInteger(amount) || amount <= bid || amount > config.maxBid) { setBidError(`اكتب رقمًا أكبر من ${bid} وحتى ${config.maxBid}.`); return; }
+    setBid(amount); setCustomBid(""); setBidError(""); setBidder((current) => current === 0 ? 1 : 0);
+  }
+  function placeBillionBid(amount: number) {
+    if (!Number.isInteger(amount) || amount <= bid || amount > budgets[bidder]) { setBidError(`العرض لازم يكون أكبر من ${bid} وما يتجاوز رصيد ${teams[bidder]}.`); return; }
+    setBid(amount); setCustomBid(""); setBidError(""); setBidder((current) => current === 0 ? 1 : 0);
+  }
   function withdraw() { const winningTeam = bidder === 0 ? 1 : 0; setWinner(winningTeam); setSeconds(Math.max(30, bid * 5)); setMarkedAnswers([]); setCorrect(0); setPhase("challenge"); }
   function finishChallenge() { if (winner === null) return; setScores((current) => { const next: [number, number] = [...current] as [number, number]; next[correct >= bid ? winner : winner === 0 ? 1 : 0] += bid; return next; }); setPhase("result"); }
   function nextRound() { if (round >= config.rounds) return; const next = round + 1; setRound(next); setQuestionIndex((value) => value + 1); setPhase(next % 4 === 0 ? "twist" : "pick"); }
-  if (config.kind === "billion") return <section className="auction-play auction-billion mx-auto max-w-5xl rounded-[2rem] p-6 text-center sm:p-9"><span className="eyebrow">مزاد المليار · الصفقة {playerIndex + 1}</span><div className="auction-budgets"><strong>{teams[0]} <b>{budgets[0].toLocaleString("en-US")} مليار</b></strong><strong>{teams[1]} <b>{budgets[1].toLocaleString("en-US")} مليار</b></strong></div><article className="football-auction-card"><Gavel /><small>{featured.position}</small><h1>{featured.name}</h1><p>التقييم {featured.rating} · يبدأ من {featured.price} مليار</p></article><div className="auction-bid-number">{bid}<small>مليار</small></div><p className="mt-3 font-bold text-gold">الدور على {teams[bidder]}</p><div className="mt-6 flex flex-wrap justify-center gap-3"><Button disabled={bid + 5 > budgets[bidder]} onClick={() => { setBid((value) => value + 5); setBidder((value) => value === 0 ? 1 : 0); }}><Gavel /> زايد +٥</Button><Button variant="outline" onClick={() => { const buyer = bidder === 0 ? 1 : 0; if (budgets[buyer] < bid) return; setBudgets((value) => buyer === 0 ? [value[0] - bid, value[1]] : [value[0], value[1] - bid]); setSquads((value) => buyer === 0 ? [[...value[0], featured], value[1]] : [value[0], [...value[1], featured]]); setPlayerIndex((value) => value + 1); setBid(3); setBidder(buyer); }}>انسحب</Button></div><div className="auction-squads"><div><h2>{teams[0]}</h2>{squads[0].map((player) => <span key={player.name}>{player.name}</span>)}</div><div><h2>{teams[1]}</h2>{squads[1].map((player) => <span key={player.name}>{player.name}</span>)}</div></div></section>;
+  if (config.kind === "billion") return <section className="auction-play auction-billion mx-auto max-w-5xl rounded-[2rem] p-6 text-center sm:p-9"><span className="eyebrow">مزاد المليار · الصفقة {playerIndex + 1}</span><div className="auction-budgets"><strong>{teams[0]} <b>{budgets[0].toLocaleString("en-US")}M</b></strong><strong>{teams[1]} <b>{budgets[1].toLocaleString("en-US")}M</b></strong></div><article className="football-auction-card"><Gavel /><small>{featured.position}</small><h1>{featured.name}</h1><p>التقييم {featured.rating} · يبدأ من {featured.price}M</p></article><div className="auction-bid-number">{bid}<small>مليون</small></div><p className="mt-3 font-bold text-gold">الدور على {teams[bidder]}</p><div className="auction-bid-controls mt-6"><Button disabled={bid + 5 > budgets[bidder]} onClick={() => placeBillionBid(bid + 5)}><Gavel /> +٥M</Button><Button disabled={bid + 10 > budgets[bidder]} onClick={() => placeBillionBid(bid + 10)}>+١٠M</Button><Button disabled={bid + 25 > budgets[bidder]} onClick={() => placeBillionBid(bid + 25)}>+٢٥M</Button><Input inputMode="numeric" type="number" min={bid + 1} max={budgets[bidder]} value={customBid} onChange={(event) => setCustomBid(event.target.value)} placeholder="مزايدة مخصصة" aria-label="مزايدة مخصصة بالملايين" /><Button variant="outline" onClick={() => placeBillionBid(Number(customBid))}>زايد</Button><Button variant="outline" onClick={() => { const buyer = bidder === 0 ? 1 : 0; if (budgets[buyer] < bid) { setBidError("رصيد الفريق الفائز لا يكفي لهذه الصفقة."); return; } setBudgets((value) => buyer === 0 ? [value[0] - bid, value[1]] : [value[0], value[1] - bid]); setSquads((value) => buyer === 0 ? [[...value[0], featured], value[1]] : [value[0], [...value[1], featured]]); const nextIndex = playerIndex + 1; setPlayerIndex(nextIndex); setBid(BILLION_PLAYERS[nextIndex % BILLION_PLAYERS.length].price); setBidder(buyer); setCustomBid(""); setBidError(""); }}>أمرّر</Button></div>{bidError && <p className="mt-3 text-sm text-red-200">{bidError}</p>}<div className="auction-squads"><div><h2>{teams[0]}</h2>{squads[0].map((player) => <span key={player.name}>{player.name}</span>)}</div><div><h2>{teams[1]}</h2>{squads[1].map((player) => <span key={player.name}>{player.name}</span>)}</div></div></section>;
   if (phase === "pick") return <section className="auction-play mx-auto max-w-4xl rounded-[2rem] p-8 text-center"><span className="eyebrow">مزاد الأسئلة · الجولة {round} من {config.rounds}</span><h1 className="mx-auto mt-6 max-w-3xl text-4xl leading-relaxed">{question.prompt}</h1><p className="mt-5 text-muted-foreground">لا تظهر الإجابات الآن؛ كل فريق يزايد فقط على العدد الذي يقدر يذكره.</p><Button className="mt-8" onClick={beginBid}><Gavel /> ابدأ المزايدة</Button></section>;
-  if (phase === "bid") return <section className="auction-play mx-auto max-w-3xl rounded-[2rem] p-8 text-center"><span className="eyebrow">{question.prompt}</span><Gavel className="auction-gavel mx-auto mt-5" /><h1 className="mt-4">الدور على {teams[bidder]}</h1><div className="auction-bid-number">{bid}<small>إجابة</small></div><p className="mt-3 text-muted-foreground">قولوا: «أقدر {bid + 1}» أو مرّروا للفريق الآخر.</p><div className="mt-7 flex justify-center gap-3"><Button disabled={bid >= config.maxBid} onClick={() => { setBid((value) => value + 1); setBidder((value) => value === 0 ? 1 : 0); }}><Gavel /> أقدر {bid + 1}</Button><Button variant="outline" onClick={withdraw}>أمرّر</Button></div></section>;
+  if (phase === "bid") return <section className="auction-play mx-auto max-w-3xl rounded-[2rem] p-8 text-center"><span className="eyebrow">{question.prompt}</span><Gavel className="auction-gavel mx-auto mt-5" /><h1 className="mt-4">الدور على {teams[bidder]}</h1><div className="auction-bid-number">{bid}<small>إجابة</small></div><p className="mt-3 text-muted-foreground">زايدوا بأي رقم أعلى من العرض الحالي، أو مرّروا للفريق الآخر.</p><div className="auction-bid-controls mt-7"><Button disabled={bid + 1 > config.maxBid} onClick={() => placeQuestionBid(bid + 1)}>+١</Button><Button disabled={bid + 2 > config.maxBid} onClick={() => placeQuestionBid(bid + 2)}>+٢</Button><Button disabled={bid + 5 > config.maxBid} onClick={() => placeQuestionBid(bid + 5)}>+٥</Button><Input inputMode="numeric" type="number" min={bid + 1} max={config.maxBid} value={customBid} onChange={(event) => setCustomBid(event.target.value)} placeholder="اكتب رقمك" aria-label="مزايدة مخصصة" /><Button variant="outline" onClick={() => placeQuestionBid(Number(customBid))}>زايد</Button><Button variant="outline" onClick={withdraw}>أمرّر</Button></div>{bidError && <p className="mt-3 text-sm text-red-200">{bidError}</p>}</section>;
   if (phase === "challenge") return <section className="auction-play mx-auto max-w-5xl rounded-[2rem] p-8 text-center"><span className="eyebrow">{question.prompt}</span><h1 className="mt-4">{teams[winner ?? 0]} التزم بـ {bid} إجابات</h1><div className="auction-timer">{seconds}</div><p className="mt-2 font-bold text-gold">الإجابات الصحيحة: {correct} من {bid}</p><p className="mt-1 text-sm text-muted-foreground">مدير اللعبة يعلّم الإجابة التي يسمعها فقط.</p><div className="auction-answer-list mt-7">{question.answers.map((answer) => <button key={answer} className={markedAnswers.includes(answer) ? "is-marked" : ""} onClick={() => setMarkedAnswers((current) => { const next = current.includes(answer) ? current.filter((item) => item !== answer) : [...current, answer]; setCorrect(next.length); return next; })}><Check /> {answer}</button>)}</div><div className="mt-6 flex justify-center gap-3"><Button onClick={finishChallenge} disabled={correct < bid && seconds > 0}>ثبّت النتيجة</Button>{seconds === 0 && <Button variant="outline" onClick={finishChallenge}>انتهى الوقت</Button>}</div></section>;
   if (phase === "twist") { const twist = AUCTION_TWISTS[(round / 4 - 1) % AUCTION_TWISTS.length]; return <section className="auction-play auction-twist mx-auto max-w-xl rounded-[2rem] p-9 text-center"><Gavel className="auction-gavel mx-auto" /><span className="eyebrow">عقوبة مفاجئة</span><div className="twist-card mt-6"><small>اقلبوا الكرت</small><strong>{twist}</strong></div><Button className="mt-7" onClick={() => setPhase("pick")}>السؤال التالي</Button></section>; }
   return <section className="auction-play mx-auto max-w-xl rounded-[2rem] p-8 text-center"><Trophy className="mx-auto h-10 w-10 text-gold" /><h1 className="mt-4">النتيجة</h1><p className="mt-3 text-lg">{correct >= bid ? `${teams[winner ?? 0]} وفّى بالمزايدة!` : `${teams[(winner ?? 0) === 0 ? 1 : 0]} أخذ الهدية.`}</p><div className="auction-scoreboard"><strong>{teams[0]} <b>{scores[0]}</b></strong><strong>{teams[1]} <b>{scores[1]}</b></strong></div>{round < config.rounds ? <Button className="mt-7" onClick={nextRound}>الجولة التالية</Button> : <Button asChild className="mt-7"><Link to="/games">لعبة جديدة</Link></Button>}</section>;
 }
 
-const LETTERS = ["أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ر", "س", "ش", "ص", "ض", "ط", "ع", "ف", "ق", "ك", "ل", "م"];
-const HUROOF_QUESTIONS: Record<string, string> = {
-  "أ": "ما عاصمة الأردن؟", "ب": "ما اسم المدينة الوردية المنحوتة بالصخر؟", "ت": "ما اسم القارة التي تقع فيها الأردن؟", "ث": "كم عدد أشهر السنة؟", "ج": "ما الحيوان المعروف بسفينة الصحراء؟", "ح": "ما العضو الذي يضخ الدم؟", "خ": "ما لون علم الأردن في أعلاه؟", "د": "ما عملة الأردن الرسمية؟", "ر": "ما اسم نهر الأردن الشهير؟", "س": "ما اسم القارة التي تقع فيها فلسطين؟", "ش": "ما الأكلة الفلسطينية المشهورة بالبصل والسماق؟", "ص": "ما عاصمة فلسطين؟", "ض": "ما ضد كلمة طويل؟", "ط": "ما الكوكب المعروف بالكوكب الأحمر؟", "ع": "ما عاصمة الأردن؟", "ف": "ما اسم البحر الذي يحد الأردن غرباً؟", "ق": "ما اسم القلعة الموجودة في عمّان؟", "ك": "كم ضلعاً للمربع؟", "ل": "ما لون ورقة الشجر؟", "م": "ما أكبر حيوان بري؟",
+const HUROOF_QUESTIONS: Record<string, { question: string; answer: string }> = {
+  "ا": { question: "ما عاصمة الأردن؟", answer: "عمّان" }, "ب": { question: "ما اسم المدينة الوردية المنحوتة بالصخر؟", answer: "البتراء" }, "ت": { question: "ما القارة التي تقع فيها الأردن؟", answer: "آسيا" }, "ث": { question: "كم عدد أشهر السنة؟", answer: "اثنا عشر" }, "ج": { question: "ما الحيوان المعروف بسفينة الصحراء؟", answer: "الجمل" }, "ح": { question: "ما العضو الذي يضخ الدم؟", answer: "القلب" }, "خ": { question: "ما لون أعلى علم الأردن؟", answer: "الأسود" }, "د": { question: "ما العملة الرسمية في الأردن؟", answer: "الدينار الأردني" }, "ر": { question: "ما النهر الشهير الذي يمر بالأردن؟", answer: "نهر الأردن" }, "س": { question: "ما الأكلة الفلسطينية الشهيرة بالبصل والسماق؟", answer: "المسخن" }, "ش": { question: "ما اسم الكوكب الأحمر؟", answer: "المريخ" }, "ص": { question: "ما عاصمة فلسطين؟", answer: "القدس" }, "ض": { question: "ما ضد كلمة طويل؟", answer: "قصير" }, "ط": { question: "كم ضلعاً للمربع؟", answer: "أربعة" }, "ع": { question: "ما أكبر حيوان بري؟", answer: "الفيل" }, "ف": { question: "ما البحر الذي يحد الأردن غرباً؟", answer: "البحر الميت" }, "ق": { question: "ما القلعة الموجودة في عمّان؟", answer: "قلعة عمّان" }, "ك": { question: "ما لون ورقة الشجر؟", answer: "أخضر" }, "ل": { question: "ما لغة القرآن الكريم؟", answer: "العربية" }, "م": { question: "ما عاصمة المغرب؟", answer: "الرباط" },
 };
-type Owner = "A" | "B" | null;
-type HuroofClaim = { index: number; team: Exclude<Owner, null>; order: number };
+type HuroofSnapshot = { owners: HuroofOwner[]; turn: "A" | "B" };
 function HuroofPlay({ session }: { session: GameSession }) {
-  const [board, setBoard] = useState<Owner[]>(Array(20).fill(null)); const [claims, setClaims] = useState<HuroofClaim[]>([]); const [team, setTeam] = useState<"A" | "B">("A"); const [selected, setSelected] = useState<number | null>(null); const [winner, setWinner] = useState<"A" | "B" | null>(null);
-  const [teamA, teamB] = session.teams;
-  function choose(index: number) { if (!board[index] && !winner) setSelected(index); }
-  function resolve(correct: boolean) {
-    if (selected === null) return;
-    if (!correct) { setSelected(null); setTeam((current) => current === "A" ? "B" : "A"); return; }
-    const next = board.map((owner, index) => index === selected ? team : owner); setBoard(next); setClaims((current) => [...current, { index: selected, team, order: current.length + 1 }]); setSelected(null);
-    if (hasHuroofPath(next, team)) setWinner(team);
+  const config = session.huroof ?? { size: 5 as const, rounds: 1, buzzer: false, seed: 0.42 };
+  const [letters] = useState(() => createLetterBoard(config.size, config.seed));
+  const [owners, setOwners] = useState<HuroofOwner[]>(() => Array(config.size * config.size).fill(null));
+  const [turn, setTurn] = useState<"A" | "B">("A"); const [selected, setSelected] = useState<number | null>(null); const [answerOpen, setAnswerOpen] = useState(false);
+  const [winningPath, setWinningPath] = useState<number[]>([]); const [history, setHistory] = useState<HuroofSnapshot[]>([]);
+  const [boardRestored, setBoardRestored] = useState(false);
+  const [teamA, teamB] = session.teams; const winner = winningPath.length ? owners[winningPath[0]] : null;
+  const question = selected === null ? null : HUROOF_QUESTIONS[letters[selected]] ?? { question: `اذكر كلمة عربية تبدأ بحرف ${letters[selected]}`, answer: "يقبلها المقدم" };
+  const changeTurn = () => setTurn((current) => current === "A" ? "B" : "A");
+  function choose(index: number) { if (!owners[index] && !winner) { setSelected(index); setAnswerOpen(false); } }
+  function claim(owner: "A" | "B") {
+    if (selected === null || winner) return;
+    setHistory((current) => [...current, { owners, turn }]);
+    const next = owners.map((cell, index) => index === selected ? owner : cell);
+    const path = findWinningPath(next, config.size, owner);
+    setOwners(next); setWinningPath(path); setSelected(null); setAnswerOpen(false);
+    if (!path.length) setTurn(owner === "A" ? "B" : "A");
   }
-  const chosenLetter = selected === null ? null : LETTERS[selected];
-  const point = (index: number) => { const row = Math.floor(index / 5); const column = index % 5; return `${62 + column * 92 + (row % 2 ? 46 : 0)},${57 + row * 82}`; };
-  return <section className="huroof-play mx-auto max-w-6xl"><div className="huroof-side"><span>حروف</span><Timer /><strong>الدور على {team === "A" ? teamA : teamB}</strong><ScoreHex team="A" name={teamA} score="من فوق لتحت" active={team === "A"} /><ScoreHex team="B" name={teamB} score="من اليمين للشمال" active={team === "B"} /></div><div className="huroof-board-wrap"><div className="huroof-goal"><i className="team-key team-key-a" /> {teamA} يوصل من فوق لتحت <b>·</b> <i className="team-key team-key-b" /> {teamB} يوصل من اليمين للشمال</div><div className="huroof-board"><svg className="huroof-paths" viewBox="0 0 540 360" aria-hidden="true">{(["A", "B"] as const).map((owner) => <polyline key={owner} className={`team-path team-path-${owner.toLowerCase()}`} points={claims.filter((claim) => claim.team === owner).map((claim) => point(claim.index)).join(" ")} />)}</svg>{Array.from({ length: 4 }, (_, row) => <div key={row} className={`huroof-row ${row % 2 ? "is-offset" : ""}`}>{LETTERS.slice(row * 5, row * 5 + 5).map((letter, column) => { const index = row * 5 + column; const claim = claims.find((item) => item.index === index); return <button key={`${letter}-${index}`} className={`huroof-hex ${board[index] ? `owned-by-${board[index]}` : ""} ${selected === index ? "is-selected" : ""}`} disabled={Boolean(board[index]) || Boolean(winner)} onClick={() => choose(index)}><small>{letter}</small>{claim && <><b className="huroof-claim-check">✓</b><em className="huroof-claim-order">{claim.order}</em></>}</button>; })}</div>)}</div>{winner ? <div className="huroof-result"><Crown /><h1>{winner === "A" ? teamA : teamB} وصل الخط!</h1><p>طقّيتوها — فازوا بالجولة.</p><Button asChild><Link to="/games">لعبة جديدة</Link></Button></div> : selected !== null ? <div className="huroof-question"><span>سؤال حرف {chosenLetter}</span><strong>{HUROOF_QUESTIONS[chosenLetter!]}</strong><p>مدير الجلسة اسأل الفريق. إذا جاوب صح، ثبّت الخلية بلونه.</p><div><Button onClick={() => resolve(true)}>جاوب صح</Button><Button variant="outline" onClick={() => resolve(false)}>ما زبطت</Button></div></div> : <div className="huroof-word"><span>اختاروا خلية فاضية للفريق اللي عليه الدور.</span></div>}</div></section>;
+  function miss() { setSelected(null); setAnswerOpen(false); changeTurn(); }
+  function undo() {
+    const previous = history.at(-1); if (!previous) return;
+    setOwners(previous.owners); setTurn(previous.turn); setHistory((current) => current.slice(0, -1));
+    setWinningPath(findWinningPath(previous.owners, config.size, "A").length ? findWinningPath(previous.owners, config.size, "A") : findWinningPath(previous.owners, config.size, "B"));
+  }
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(`taqha:huroof:${config.seed}`);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<{ owners: HuroofOwner[]; turn: "A" | "B"; winningPath: number[]; history: HuroofSnapshot[] }>;
+        if (parsed.owners?.length === config.size * config.size) {
+          setOwners(parsed.owners); setTurn(parsed.turn ?? "A"); setWinningPath(parsed.winningPath ?? []); setHistory(parsed.history ?? []);
+        }
+      }
+    } catch { /* Local storage is optional. */ }
+    setBoardRestored(true);
+  }, [config.seed, config.size]);
+  useEffect(() => {
+    if (!boardRestored) return;
+    try { window.localStorage.setItem(`taqha:huroof:${config.seed}`, JSON.stringify({ owners, turn, winningPath, history })); } catch { /* Keep the round playable if storage is unavailable. */ }
+  }, [boardRestored, config.seed, history, owners, turn, winningPath]);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (selected === null) return;
+      if (event.key.toLowerCase() === "a") claim("A");
+      if (event.key.toLowerCase() === "l") claim("B");
+      if (event.code === "Space") { event.preventDefault(); setAnswerOpen(true); }
+    };
+    window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selected, owners, turn, winningPath]);
+  return <section className="huroof-stage mx-auto max-w-7xl">
+    <header className="huroof-topbar"><ScoreHex team="A" name={teamA} score="0" active={turn === "A"} /><div><span>حروف</span><strong>الجولة 1 من {config.rounds}</strong><small>{config.buzzer ? "وضع الجرس" : "وضع المقدم"}</small></div><ScoreHex team="B" name={teamB} score="0" active={turn === "B"} /></header>
+    <div className="huroof-board-shell"><i className="huroof-edge huroof-edge-top" aria-label="هدف الأخضر: أعلى اللوحة" /><i className="huroof-edge huroof-edge-bottom" aria-label="هدف الأخضر: أسفل اللوحة" /><i className="huroof-edge huroof-edge-right" aria-label="هدف العنابي: يمين اللوحة" /><i className="huroof-edge huroof-edge-left" aria-label="هدف العنابي: يسار اللوحة" />
+      <div className="huroof-new-grid" style={{ "--huroof-size": config.size } as React.CSSProperties}>{Array.from({ length: config.size }, (_, row) => <div key={row} className={`huroof-new-row ${row % 2 ? "is-offset" : ""}`}>{letters.slice(row * config.size, row * config.size + config.size).map((letter, column) => { const index = row * config.size + column; return <button key={`${letter}-${index}`} aria-label={`حرف ${letter}`} className={`huroof-new-hex ${owners[index] ? `team-${owners[index]}` : ""} ${selected === index ? "is-selected" : ""} ${winningPath.includes(index) ? "is-winning" : ""}`} disabled={Boolean(owners[index]) || Boolean(winner)} onClick={() => choose(index)}><span>{letter}</span></button>; })}</div>)}</div>
+    </div>
+    {winner ? <div className="huroof-win-panel"><Crown /><h1>فريق {winner === "A" ? teamA : teamB} ربط الطرفين!</h1><p>طقّيتوها — انتهت الجولة بمسار متصل.</p><div><Button onClick={() => { setOwners(Array(config.size * config.size).fill(null)); setWinningPath([]); setHistory([]); setTurn("A"); }}>إعادة الجولة</Button><Button variant="outline" asChild><Link to="/games">كل الألعاب</Link></Button></div></div> : selected === null ? <footer className="huroof-actionbar"><span>الدور على <b>{turn === "A" ? teamA : teamB}</b> — اختروا خلية لبدء السؤال</span><Button variant="outline" disabled={!history.length} onClick={undo}>تراجع عن آخر حركة</Button></footer> : <section className="huroof-question-stage"><span>حرف: {letters[selected]}</span><h1>{question.question}</h1>{answerOpen && <p className="huroof-answer">الإجابة: <b>{question.answer}</b></p>}<div className="huroof-question-actions"><Button variant="outline" onClick={() => setAnswerOpen(true)}>إظهار الإجابة</Button><Button onClick={() => claim("A")}>✓ الأخضر صح <small>A</small></Button><Button className="bg-[#7e1f35] hover:bg-[#6d192e]" onClick={() => claim("B")}>✓ العنابي صح <small>L</small></Button><Button variant="outline" onClick={miss}>لا أحد أجاب</Button></div><p>اختصارات: A للأخضر · L للعنابي · Space للإجابة</p></section>}</section>;
 }
-function hasHuroofPath(board: Owner[], owner: "A" | "B") {
-  const rows = 4; const cols = 5; const starts = owner === "A" ? Array.from({ length: cols }, (_, col) => col) : Array.from({ length: rows }, (_, row) => row * cols); const seen = new Set<number>(); const queue = starts.filter((index) => board[index] === owner);
-  queue.forEach((index) => seen.add(index));
-  while (queue.length) { const current = queue.shift()!; const row = Math.floor(current / cols); const col = current % cols; if ((owner === "A" && row === rows - 1) || (owner === "B" && col === cols - 1)) return true; const offsets = row % 2 === 0 ? [[0,-1],[0,1],[-1,-1],[-1,0],[1,-1],[1,0]] : [[0,-1],[0,1],[-1,0],[-1,1],[1,0],[1,1]]; offsets.forEach(([rowOffset, colOffset]) => { const nextRow = row + rowOffset; const nextCol = col + colOffset; const next = nextRow * cols + nextCol; if (nextRow >= 0 && nextRow < rows && nextCol >= 0 && nextCol < cols && board[next] === owner && !seen.has(next)) { seen.add(next); queue.push(next); } }); }
-  return false;
-}
-function ScoreHex({ team, name, score, active }: { team: "A" | "B"; name: string; score: string; active: boolean }) { return <div className={`score-hex team-${team.toLowerCase()} ${active ? "is-active" : ""}`}><small>{name}</small><strong>{score}</strong></div>; }
+function ScoreHex({ team, name, score, active }: { team: "A" | "B"; name: string; score: string; active: boolean }) { return <div className={`huroof-score team-${team.toLowerCase()} ${active ? "is-active" : ""}`}><small>{name}</small><strong>{score}</strong></div>; }
 
 function OutsiderPlay({ mode, names: sessionNames }: { mode: PlayMode; names: string[] }) {
   const names = sessionNames.length ? sessionNames : ["ليان", "يزن", "تالا", "حمزة", "نور"]; const [step, setStep] = useState(0); const [revealed, setRevealed] = useState(false); const [phase, setPhase] = useState<"secret" | "describe" | "vote" | "result">("secret"); const [outsider, setOutsider] = useState(0); const [voter, setVoter] = useState(0); const [voteRevealed, setVoteRevealed] = useState(false); const [votes, setVotes] = useState<number[]>([]);
