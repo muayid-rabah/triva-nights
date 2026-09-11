@@ -21,7 +21,7 @@ export function GameRoomFlow({ game, onStart }: { game: ArcadeGame; onStart: (mo
   useEffect(() => { setCode(roomCode()); }, []);
 
   if (mode === "online") {
-    const canStart = joined.length >= (game.slug === "taqha" || game.slug === "huroof" ? 2 : 5);
+    const canStart = joined.length >= (game.slug === "taqha" || game.slug === "huroof" || game.slug === "auction" || game.slug === "auction-billion" ? 2 : 5);
     return (
       <section className={`arcade-skin arcade-${game.accent} mx-auto max-w-3xl rounded-[2rem] border p-6 text-center sm:p-9`}>
         <span className="inline-flex items-center gap-2 rounded-full border border-current/30 px-4 py-2 text-sm font-bold"><UsersRound className="h-4 w-4" /> غرفة {game.name}</span>
@@ -37,7 +37,7 @@ export function GameRoomFlow({ game, onStart }: { game: ArcadeGame; onStart: (mo
           <div className="mt-3 flex flex-wrap gap-2">{joined.map((name, index) => <span key={`${name}-${index}`} title={name} className="player-chip">{name.slice(0, 1)}</span>)}</div>
           <div className="mt-4 flex gap-2"><Input value={playerName} onChange={(event) => setPlayerName(event.target.value)} className="h-9 bg-background/50" placeholder="اسم اللاعب اللي وصل" maxLength={24} /><Button variant="outline" size="sm" onClick={() => { const clean = playerName.trim(); if (!clean) return; setJoined((names) => [...names, clean]); setPlayerName(""); }}>أضف الاسم</Button></div>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">يبدأ صاحب الغرفة بعد اكتمال {game.slug === "taqha" || game.slug === "huroof" ? "لاعبين" : "٥ لاعبين"} على الأقل.</p>
+        <p className="mt-4 text-xs text-muted-foreground">يبدأ صاحب الغرفة بعد اكتمال {game.slug === "taqha" || game.slug === "huroof" || game.slug === "auction" || game.slug === "auction-billion" ? "لاعبين" : "٥ لاعبين"} على الأقل.</p>
         <Button className="mt-5 min-w-52" disabled={!canStart} onClick={() => onStart("online", joined)}>ابدأ اللعبة</Button>
       </section>
     );

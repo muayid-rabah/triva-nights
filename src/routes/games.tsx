@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Gavel, Search, Skull, Target, Type } from "lucide-react";
+import { Gavel, Search, Skull, Target, Trophy, Type } from "lucide-react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { ARCADE_GAMES } from "@/lib/arcade-catalog";
 
 export const Route = createFileRoute("/games")({ component: GamesHubPage });
 
-const GAME_ICONS = { taqha: Target, huroof: Type, outsider: Search, mafia: Skull, auction: Gavel };
+const GAME_ICONS = { taqha: Target, huroof: Type, outsider: Search, mafia: Skull, auction: Gavel, "auction-billion": Trophy };
 
 function GamesHubPage() {
   return (
@@ -20,7 +20,7 @@ function GamesHubPage() {
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">من نفس اللمّة، بأجواء مختلفة. اختاروا اللعبة وخلوّها تبلّش.</p>
         </section>
 
-        <section className="mx-auto grid max-w-7xl grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5 px-4 pb-20">
+        <section className="mx-auto grid max-w-7xl grid-cols-1 gap-5 px-4 pb-20 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           {ARCADE_GAMES.map((game) => {
             const Icon = GAME_ICONS[game.slug];
             return (

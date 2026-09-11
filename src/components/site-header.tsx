@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Gavel, Gamepad2, Gift, LogIn, Menu, Moon, Plus, Search, Skull, Sun, Target, Type, User2, X } from "lucide-react";
+import { ChevronDown, Gavel, Gamepad2, Gift, LogIn, Menu, Moon, Plus, Search, Skull, Sun, Target, Trophy, Type, User2, X } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ const GAME_NAV = [
   { to: "/arcade", search: { game: "outsider" }, label: "مين برا السالفة", Icon: Search },
   { to: "/arcade", search: { game: "mafia" }, label: "مافيا", Icon: Skull },
   { to: "/arcade", search: { game: "auction" }, label: "المزاد", Icon: Gavel },
+  { to: "/arcade", search: { game: "auction-billion" }, label: "مزاد المليار", Icon: Trophy },
 ] as const;
 
 export function Brand() {

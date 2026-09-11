@@ -1,4 +1,4 @@
-export type ArcadeGameSlug = "taqha" | "huroof" | "outsider" | "mafia" | "auction";
+export type ArcadeGameSlug = "taqha" | "huroof" | "outsider" | "mafia" | "auction" | "auction-billion";
 
 export interface ArcadeGame {
   slug: ArcadeGameSlug;
@@ -15,6 +15,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
   { slug: "outsider", name: "مين برا السالفة", tagline: "اكتشفوا المتخفي", description: "كلّكم عارفين الكلمة… إلا واحد لازم تكتشفوه.", accent: "outsider", players: "٥ لاعبين أو أكثر" },
   { slug: "mafia", name: "مافيا", tagline: "الليل إله حكي ثاني", description: "أدوار سرية، نقاش، وتصويت قبل ما تغمض عيونكم.", accent: "mafia", players: "٥–٢٠ لاعب" },
   { slug: "auction", name: "المزاد", tagline: "قول رقمك وثبّت كلمتك", description: "زايدوا على التحدّي، واكسبوا بالنَفَس والمعرفة.", accent: "auction", players: "فريقان" },
+  { slug: "auction-billion", name: "مزاد المليار", tagline: "ابنِ فريقك بالمزايدة", description: "لاعبان يتنافسان على نجوم الكرة ضمن ميزانية واحدة لكل لاعب.", accent: "auction", players: "لاعبان" },
 ];
 
 export function arcadeGame(slug: string | undefined): ArcadeGame {

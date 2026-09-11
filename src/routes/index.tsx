@@ -14,6 +14,7 @@ import {
   Skull,
   Shovel,
   Target,
+  Trophy,
   Type,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -61,7 +62,7 @@ const HELP_ICONS: Record<HelpKey, typeof Hand> = {
   call: Phone,
 };
 
-const GAME_MARKS = { taqha: Target, huroof: Type, outsider: Search, mafia: Skull, auction: Gavel } satisfies Record<ArcadeGameSlug, typeof Target>;
+const GAME_MARKS = { taqha: Target, huroof: Type, outsider: Search, mafia: Skull, auction: Gavel, "auction-billion": Trophy } satisfies Record<ArcadeGameSlug, typeof Target>;
 
 const FAQ = [
   { q: "كيف أنشئ لعبة؟", a: "ادخل على صفحة إنشاء لعبة، اختر ٦ فئات، سمِّ الفريقين، واضغط ابدأ اللعب." },
@@ -169,10 +170,10 @@ function HomePage() {
           <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
             كل لعبة إلها طريقتها، لكن الكل يشتغل على نفس القعدة: قواعد قصيرة، أسماء واضحة، وحماس بدون تعقيد.
           </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mx-auto mt-8 grid max-w-7xl gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
             {ARCADE_GAMES.map((game) => {
               const Icon = GAME_MARKS[game.slug];
-              const how = game.slug === "taqha" ? "فريقان يختاران الفئات ويصعدان بلوحة النقاط." : game.slug === "huroof" ? "جاوبوا، خذوا خلية، ووصلوا خط فريقكم أولاً." : game.slug === "outsider" ? "الكل يعرف السر إلا لاعب واحد؛ اكتشفوه قبل ما يهرب." : game.slug === "mafia" ? "ليلة أدوار سرية، نقاش وتصويت حتى يحسم أحد الفريقين." : "زايدوا على التحدّي وثبّتوا التزامكم قبل أن ينسحب الخصم.";
+              const how = game.slug === "taqha" ? "فريقان يختاران الفئات ويصعدان بلوحة النقاط." : game.slug === "huroof" ? "جاوبوا، خذوا خلية، ووصلوا خط فريقكم أولاً." : game.slug === "outsider" ? "الكل يعرف السر إلا لاعب واحد؛ اكتشفوه قبل ما يهرب." : game.slug === "mafia" ? "ليلة أدوار سرية، نقاش وتصويت حتى يحسم أحد الفريقين." : game.slug === "auction" ? "زايدوا على التحدّي وثبّتوا التزامكم قبل أن ينسحب الخصم." : "لاعبان يبنيان تشكيلة كرة قدم بالمزايدة ضمن ميزانية محددة.";
               return <Link key={game.slug} to="/arcade" search={{ game: game.slug }} className={`heritage-card card-hover rounded-3xl border border-border bg-card p-5 text-start game-guide-${game.accent}`}>
                 <span className="help-emblem grid h-12 w-12 place-items-center rounded-full bg-surface-2"><Icon className="h-6 w-6 text-gold" /></span>
                 <h3 className="mt-4 text-xl">{game.name}</h3><p className="mt-2 min-h-20 text-sm leading-6 text-muted-foreground">{how}</p>

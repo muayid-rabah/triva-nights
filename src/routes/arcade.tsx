@@ -70,7 +70,7 @@ function ChoiceButton({ active, children, onClick }: { active: boolean; children
 function GameSetup({ game, mode, initialPlayers, onStart }: { game: ArcadeGameSlug; mode: PlayMode; initialPlayers: string[]; onStart: (session: GameSession) => void }) {
   if (game === "huroof") return <HuroofSetup mode={mode} onStart={onStart} />;
   if (game === "outsider") return <OutsiderSetup mode={mode} initialPlayers={initialPlayers} onStart={onStart} />;
-  if (game === "auction") return <AuctionSetup mode={mode} onStart={onStart} />;
+  if (game === "auction" || game === "auction-billion") return <AuctionSetup mode={mode} initialKind={game === "auction-billion" ? "billion" : "categories"} onStart={onStart} />;
   return <MafiaSetup mode={mode} initialPlayers={initialPlayers} onStart={onStart} />;
 }
 
@@ -122,13 +122,13 @@ function ParticipantFields({ names, onChange }: { names: string[]; onChange: (na
   return <div className="participant-fields mt-7"><div className="flex items-center justify-between gap-3"><p className="font-bold">أسماء المشاركين</p><span>{names.length} لاعبين</span></div><p className="mt-1 text-sm text-muted-foreground">اكتبوا الأسماء قبل البدء؛ رح تظهر بالأدوار والتصويت.</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{names.map((name, index) => <Input key={index} value={name} maxLength={24} onChange={(event) => onChange(names.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} placeholder={`اسم اللاعب ${index + 1}`} />)}</div></div>;
 }
 
-function AuctionSetup({ mode, onStart }: { mode: PlayMode; onStart: (session: GameSession) => void }) {
-  const [kind, setKind] = useState<AuctionKind>("categories");
+function AuctionSetup({ mode, initialKind, onStart }: { mode: PlayMode; initialKind: AuctionKind; onStart: (session: GameSession) => void }) {
+  const [kind, setKind] = useState<AuctionKind>(initialKind);
   const [teamA, setTeamA] = useState("فريق السرو"); const [teamB, setTeamB] = useState("فريق الكرمل");
   const [rounds, setRounds] = useState(3); const [maxBid, setMaxBid] = useState(15); const [slots, setSlots] = useState(19);
   return <section className="arcade-panel arcade-auction mx-auto max-w-3xl rounded-[2rem] p-6 sm:p-9">
-    <span className="eyebrow">المزاد · {mode === "online" ? "غرفة جوالات" : "جهاز واحد"}</span><h1 className="mt-3 text-4xl">أي نوع مزاد بدكم؟</h1>
-    <div className="mt-7 grid gap-4 sm:grid-cols-2"><button className={`play-mode-card text-start ${kind === "categories" ? "is-active" : ""}`} onClick={() => setKind("categories")}><span className="mode-icon"><Gavel /></span><h2>مزاد الأسئلة</h2><p>زايدوا على عدد الإجابات التي تقدروا تذكروها من سؤال قائمة مفتوحة واحد.</p></button><button className={`play-mode-card text-start ${kind === "billion" ? "is-active" : ""}`} onClick={() => setKind("billion")}><span className="mode-icon"><Trophy /></span><h2>مزاد المليار</h2><p>لاعبان يبنون تشكيلة كرة قدم بميزانية وهمية ومزايدات متتابعة.</p></button></div>
+    <span className="eyebrow">{kind === "billion" ? "مزاد المليار" : "مزاد الأسئلة"} · {mode === "online" ? "غرفة جوالات" : "جهاز واحد"}</span><h1 className="mt-3 text-4xl">{kind === "billion" ? "ابنوا فريقكم بالمزايدة" : "زايدوا وثبّتوا كلمتكم"}</h1>
+    {initialKind === "categories" && <div className="mt-7 grid gap-4 sm:grid-cols-2"><button className={`play-mode-card text-start ${kind === "categories" ? "is-active" : ""}`} onClick={() => setKind("categories")}><span className="mode-icon"><Gavel /></span><h2>مزاد الأسئلة</h2><p>زايدوا على عدد الإجابات التي تقدروا تذكروها من سؤال قائمة مفتوحة واحد.</p></button><button className={`play-mode-card text-start ${kind === "billion" ? "is-active" : ""}`} onClick={() => setKind("billion")}><span className="mode-icon"><Trophy /></span><h2>مزاد المليار</h2><p>لاعبان يبنون تشكيلة كرة قدم بميزانية وهمية ومزايدات متتابعة.</p></button></div>}
     <div className="mt-7 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الأول" : "اسم الفريق الأول"}<Input value={teamA} onChange={(event) => setTeamA(event.target.value)} className="mt-2 h-11 bg-background/45" /></label><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الثاني" : "اسم الفريق الثاني"}<Input value={teamB} onChange={(event) => setTeamB(event.target.value)} className="mt-2 h-11 bg-background/45" /></label></div>
     <div className="mt-6 grid gap-5 sm:grid-cols-3"><SetupChoices title="عدد الجولات" values={[1, 3, 5]} selected={rounds} onChange={setRounds} /><SetupChoices title="أقصى مزايدة" values={[10, 15, 20]} selected={maxBid} onChange={setMaxBid} />{kind === "billion" && <SetupChoices title="خانات التشكيلة" values={[7, 11, 19]} selected={slots} onChange={setSlots} />}</div>
     <Button className="mt-8" onClick={() => onStart({ teams: [teamA.trim() || "فريق السرو", teamB.trim() || "فريق الكرمل"], players: [], auction: { kind, rounds, maxBid, slots } })}><Gavel /> افتحوا المزاد</Button>
@@ -138,7 +138,7 @@ function AuctionSetup({ mode, onStart }: { mode: PlayMode; onStart: (session: Ga
 function GamePlay({ game, mode, session }: { game: ArcadeGameSlug; mode: PlayMode; session: GameSession }) {
   if (game === "huroof") return <HuroofPlay session={session} />;
   if (game === "outsider") return <OutsiderPlay mode={mode} names={session.players} />;
-  if (game === "auction") return <AuctionPlay session={session} />;
+  if (game === "auction" || game === "auction-billion") return <AuctionPlay session={session} />;
   return <MafiaPlay mode={mode} names={session.players} />;
 }
 
