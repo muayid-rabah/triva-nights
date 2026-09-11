@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
+  Gavel,
   Gift,
   Hand,
   HandMetal,
@@ -31,7 +32,7 @@ import { HELPS, type HelpKey } from "@/lib/game-types";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
-import { ARCADE_GAMES } from "@/lib/arcade-catalog";
+import { ARCADE_GAMES, type ArcadeGameSlug } from "@/lib/arcade-catalog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -60,7 +61,7 @@ const HELP_ICONS: Record<HelpKey, typeof Hand> = {
   call: Phone,
 };
 
-const GAME_MARKS = { taqha: Target, huroof: Type, outsider: Search, mafia: Skull };
+const GAME_MARKS = { taqha: Target, huroof: Type, outsider: Search, mafia: Skull, auction: Gavel } satisfies Record<ArcadeGameSlug, typeof Target>;
 
 const FAQ = [
   { q: "كيف أنشئ لعبة؟", a: "ادخل على صفحة إنشاء لعبة، اختر ٦ فئات، سمِّ الفريقين، واضغط ابدأ اللعب." },
@@ -171,7 +172,7 @@ function HomePage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {ARCADE_GAMES.map((game) => {
               const Icon = GAME_MARKS[game.slug];
-              const how = game.slug === "taqha" ? "فريقان يختاران الفئات ويصعدان بلوحة النقاط." : game.slug === "huroof" ? "جاوبوا، خذوا خلية، ووصلوا خط فريقكم أولاً." : game.slug === "outsider" ? "الكل يعرف السر إلا لاعب واحد؛ اكتشفوه قبل ما يهرب." : "ليلة أدوار سرية، نقاش وتصويت حتى يحسم أحد الفريقين.";
+              const how = game.slug === "taqha" ? "فريقان يختاران الفئات ويصعدان بلوحة النقاط." : game.slug === "huroof" ? "جاوبوا، خذوا خلية، ووصلوا خط فريقكم أولاً." : game.slug === "outsider" ? "الكل يعرف السر إلا لاعب واحد؛ اكتشفوه قبل ما يهرب." : game.slug === "mafia" ? "ليلة أدوار سرية، نقاش وتصويت حتى يحسم أحد الفريقين." : "زايدوا على التحدّي وثبّتوا التزامكم قبل أن ينسحب الخصم.";
               return <Link key={game.slug} to="/arcade" search={{ game: game.slug }} className={`heritage-card card-hover rounded-3xl border border-border bg-card p-5 text-start game-guide-${game.accent}`}>
                 <span className="help-emblem grid h-12 w-12 place-items-center rounded-full bg-surface-2"><Icon className="h-6 w-6 text-gold" /></span>
                 <h3 className="mt-4 text-xl">{game.name}</h3><p className="mt-2 min-h-20 text-sm leading-6 text-muted-foreground">{how}</p>
