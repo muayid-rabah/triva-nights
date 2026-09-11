@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Search, Skull, Target, Type } from "lucide-react";
+import { Gavel, Search, Skull, Target, Type } from "lucide-react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { ARCADE_GAMES } from "@/lib/arcade-catalog";
 
 export const Route = createFileRoute("/games")({ component: GamesHubPage });
 
-const GAME_ICONS = { taqha: Target, huroof: Type, outsider: Search, mafia: Skull };
+const GAME_ICONS = { taqha: Target, huroof: Type, outsider: Search, mafia: Skull, auction: Gavel };
 
 function GamesHubPage() {
   return (
