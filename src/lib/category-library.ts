@@ -123,9 +123,52 @@ const groups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }> = [
   ] },
 ];
 
-export const libraryGroups = groups.map(({ group }) => group);
-export const libraryCategories: CategoryRow[] = groups.flatMap(({ group, categories }) => categories.map((category, index) => ({ id: category.slug, group_id: group.id, sort_order: index + 1, slug: category.slug, name: category.name, description: category.description, image_key: category.image_key, emoji: category.emoji })));
-const pool: QuestionRow[] = groups.flatMap(({ categories }) => categories.flatMap((category) => category.facts.map((fact, index) => ({ id: `${category.slug}-${index + 1}`, category_id: category.slug, points: 0, kind: "open" as const, text: fact.text, choices: null, answer: fact.answer, image_url: fact.image ?? null }))));
+const sourceFacts = (slug: string) => groups.flatMap(({ categories }) => categories).find((category) => category.slug === slug)?.facts ?? [];
+const topic = (slug: string, name: string, emoji: string, source: string): LibraryCategory => c(slug, name, emoji, [...sourceFacts(source)], "فئة متخصصة من مكتبة طقّها؛ تتوسع أسئلتها الأصلية باستمرار");
+const topicList = (prefix: string, names: string[], emoji: string, source: string) => names.map((name, index) => topic(`${prefix}-${index + 1}`, name, emoji, source));
+
+// أسماء الفئات أدناه مستوحاة من قائمة المستخدم، لكن الأسئلة والشعارات داخل طقّها أصلية.
+// كل بطاقة مرتبطة الآن بحزمة قابلة للعب؛ نضيف محتواها المتخصص تدريجياً من خلال مراجعة المحتوى.
+const requestedGroups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }> = [
+  { group: { id: "football-plus", slug: "football-plus", name: "كرة القدم والرياضة", sort_order: 20 }, categories: [
+    ...topicList("football-plus-world", ["ترتيب كروي", "كباتن كأس العالم", "كأس الخليج", "كأس العالم", "كأس العالم 2026", "PL 24/25", "PL 25/26", "PL 26/27", "UCL 24/25", "UCL 26/27", "دوري روشن 26/27", "الدوري السعودي", "الكلاسيكو", "أمم أوروبا", "كوبا أمريكا", "اسم الدوري", "اسم اللاعب", "خمن اللاعب", "أطقم اللاعبين", "تحدي اللاعبين", "تسريحة لاعب", "تشكيلات", "من سجل الهدف", "من هو اللاعب", "مسيرة لاعب", "مدربين", "ملاعب", "رقم اللاعب", "شعارات كروية", "خمن الصورة كروية", "صوت المعلق", "أين الكرة", "لاعبين صغار"], "⚽", "champions-league"),
+    ...topicList("football-plus-stars", ["Messi", "C.Ronaldo", "AI كروية", "كرة قدم أردنية", "كرة قدم عالمية", "رياضة", "NBA", "UFC", "Formula 1", "تنس", "بادل", "مصارعة", "Bodybuilding"], "🏅", "arab-football"),
+  ] },
+  { group: { id: "jordan-plus", slug: "jordan-plus", name: "الأردن والجغرافيا", sort_order: 21 }, categories: [
+    ...topicList("jordan-plus-local", ["الأردن", "وين بالأردن", "شعارات أردنية", "سوبرماركت أردني", "شارع الجوعانين", "ما هي المدينة", "جوازات", "دول وعواصم", "ما هي الدولة", "رؤساء الدول", "أعلام", "أعلام قديمة", "لون العلم", "خرايط", "الحرب العالمية", "النشيد الوطني", "لغات ولهجات", "سياحة وسفر", "عالم الطيران", "عملات", "جغرافيا"], "🗺️", "flags-and-countries"),
+    ...topicList("jordan-plus-city", ["عواصم", "معالم العالم", "حدود الدول", "أنهار وبحار", "جبال وجزر"], "🌍", "cities-by-clue"),
+  ] },
+  { group: { id: "islam-plus", slug: "islam-plus", name: "إسلاميات ولغة", sort_order: 22 }, categories: [
+    ...topicList("islam-plus-core", ["السيرة النبوية", "قصص الأنبياء", "الصحابة", "معاني القرآن", "جزء عم", "جزء تبارك", "من القارئ", "أناشيد", "أحاديث", "القرآن", "ترتيب إسلامي", "إسلامي"], "☪️", "islamic-knowledge"),
+    ...topicList("islam-plus-language", ["لغة وأدب", "عالم الشعر", "نحو وإعراب", "حروف", "حروف إسلامي", "حروف كروية", "حروف أنمي", "حروف متحركة", "حروف انجليزي"], "🪶", "arabic-literature"),
+  ] },
+  { group: { id: "arab-media-plus", slug: "arab-media-plus", name: "فن عربي وأغاني", sort_order: 23 }, categories: [
+    ...topicList("arab-media-plus-series", ["فن عربي", "الزير سالم", "باب الحارة", "مسرح الزعيم", "قصة فيلم عربي", "مقاطع فن عربي", "طقم فنان عربي", "مسيرة فنان أجنبي", "فن تركي", "المؤسس عثمان", "قيامة أرطغرل", "قطاع الطرق"], "🎬", "arab-series"),
+    ...topicList("arab-media-plus-music", ["أغاني", "كلثوميات", "فرقة ميامي", "عبدالكريم عبدالقادر", "أبوبكر سالم", "فرقة الأخوة", "حسين الجسمي", "بدر الشعيبي", "عايض", "آدم", "أحلام", "Songs"], "🎵", "music-and-art"),
+  ] },
+  { group: { id: "global-screen-plus", slug: "global-screen-plus", name: "سينما ومسلسلات عالمية", sort_order: 24 }, categories: [
+    ...topicList("global-screen-plus-film", ["فن أجنبي", "أفلام كلاسيك", "أفلام رعب", "خمن الفيلم الأجنبي", "طقم فنان أجنبي", "قصة فيلم أجنبي", "مقاطع فن أجنبي", "طاقم الفيلم", "بوستر فيلم أجنبي", "Bollywood", "Marvel", "DC", "Harry Potter", "Lord of the Rings", "Star Wars"], "🍿", "arab-cinema"),
+    ...topicList("global-screen-plus-series", ["The Sopranos", "Big Bang Theory", "The Office", "Friends", "The Boys", "Game Of Thrones", "House of the Dragon", "Breaking Bad", "Prison Break", "Dexter", "Peaky Blinders", "The Walking Dead", "Vikings", "From", "Dark", "Cobra Kai", "Stranger Things", "Better Call Saul", "Suits", "Brooklyn 99", "Squid Game"], "📺", "arab-series"),
+  ] },
+  { group: { id: "anime-games-plus", slug: "anime-games-plus", name: "أنمي وألعاب", sort_order: 25 }, categories: [
+    ...topicList("anime-games-plus-anime", ["أنمي", "One Piece", "One Piece Manga", "Naruto", "Bleach", "Demon Slayer", "Dragon Ball", "Attack on Titan", "Hunter × Hunter", "Pokémon", "شخصية أنمي", "طقم أنمي", "ولا كلمة أنمي"], "🎨", "animation-anime"),
+    ...topicList("anime-games-plus-games", ["Video Games", "Red Dead", "Elden Ring", "Fortnite", "League of Legends", "Overwatch", "Minecraft", "Call of Duty", "Mobile Legends", "Valorant", "Resident Evil", "مقاطع Games", "بوستر لعبة", "ولا كلمة Games"], "🎮", "gaming"),
+  ] },
+  { group: { id: "party-formats", slug: "party-formats", name: "تحديات القعدة", sort_order: 26 }, categories: [
+    ...topicList("party-formats-visual", ["وضح شوي", "بدون نقاط", "ترتيب", "خمن الصوت", "زووم", "ركز شوي", "خمن الصورة", "كلمات معكوسة", "لون الصورة", "رسم", "سبستون", "بـباي", "بباي قديم", "الحفرة"], "🧠", "brain-challenge"),
+    ...topicList("party-formats-silent", ["ولا كلمة", "ولا كلمة عامة", "ولا كلمة كروية", "ولا كلمة فن أجنبي", "ولا كلمة مصارعة", "ولا كلمة أنمي", "ولا كلمة Games"], "🤫", "no-words"),
+  ] },
+  { group: { id: "lifestyle-plus", slug: "lifestyle-plus", name: "حياة ومعرفة", sort_order: 27 }, categories: [
+    ...topicList("lifestyle-plus-general", ["معلومات عامة", "تاريخ", "سيرة ذاتية", "تكنولوجيا", "تطبيقات", "عالم الحيوان", "عالم الساعات", "Falcons", "عطور عالمية", "طب عام", "طب الأسنان", "سيارات", "براندات", "Cosmetics", "بنات وبس"], "💡", "science-and-space"),
+    ...topicList("lifestyle-plus-science", ["علوم", "فضاء", "جسم الإنسان", "اختراعات", "ذكاء اصطناعي", "أجهزة وهواتف", "Cybersecurity"], "🔬", "science-and-space"),
+  ] },
+];
+
+const allGroups = [...groups, ...requestedGroups];
+
+export const libraryGroups = allGroups.map(({ group }) => group);
+export const libraryCategories: CategoryRow[] = allGroups.flatMap(({ group, categories }) => categories.map((category, index) => ({ id: category.slug, group_id: group.id, sort_order: index + 1, slug: category.slug, name: category.name, description: category.description, image_key: category.image_key, emoji: category.emoji })));
+const pool: QuestionRow[] = allGroups.flatMap(({ categories }) => categories.flatMap((category) => category.facts.map((fact, index) => ({ id: `${category.slug}-${index + 1}`, category_id: category.slug, points: 0, kind: "open" as const, text: fact.text, choices: null, answer: fact.answer, image_url: fact.image ?? null }))));
 const shuffle = <T,>(items: T[]) => { const result = [...items]; for (let i = result.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [result[i], result[j]] = [result[j], result[i]]; } return result; };
 export function drawLibraryQuestions(categoryIds: string[]): QuestionRow[] { return categoryIds.flatMap((categoryId) => shuffle(pool.filter((question) => question.category_id === categoryId)).slice(0, 6).map((question, index) => ({ ...question, id: `${question.id}-${crypto.randomUUID()}`, points: (index + 1) * 100 }))); }
 export const libraryQuestions = pool;
