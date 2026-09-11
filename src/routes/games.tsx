@@ -20,11 +20,11 @@ function GamesHubPage() {
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">من نفس اللمّة، بأجواء مختلفة. اختاروا اللعبة وخلوّها تبلّش.</p>
         </section>
 
-        <section className="mx-auto grid max-w-6xl gap-5 px-4 pb-20 md:grid-cols-2">
-          {ARCADE_GAMES.map((game, index) => {
+        <section className="mx-auto grid max-w-7xl grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-5 px-4 pb-20">
+          {ARCADE_GAMES.map((game) => {
             const Icon = GAME_ICONS[game.slug];
             return (
-              <article key={game.slug} className={`arcade-card arcade-${game.accent} ${index === 0 ? "md:col-span-2" : ""}`}>
+              <article key={game.slug} className={`arcade-card arcade-${game.accent}`}>
                 <div className="arcade-card-icon" aria-hidden="true"><Icon /></div>
                 <div className="relative z-10 flex h-full flex-col items-start">
                   <span className="arcade-card-kicker">{game.players}</span>
