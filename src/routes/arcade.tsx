@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check, ChevronLeft, CircleHelp, Crown, Eye, Gavel, Play, Skull, Sparkles, Timer, Trophy, Vote } from "lucide-react";
 import { useEffect, useState } from "react";
+import "@/billion-auction.css";
 import { GameRoomFlow, type PlayMode } from "@/components/game-room-flow";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { arcadeGame, type ArcadeGameSlug } from "@/lib/arcade-catalog";
 import { AUCTION_QUESTIONS, AUCTION_TWISTS } from "@/lib/auction-bank";
+import { BILLION_AUCTION_PLAYERS, billionPlayerAsset, type BillionAuctionPlayer, type BillionRole } from "@/lib/billion-auction-players";
 import { createLetterBoard, findWinningPath, type HuroofOwner } from "@/lib/huroof-engine";
 
 export const Route = createFileRoute("/arcade")({
@@ -22,7 +24,7 @@ type GameSession = {
   teams: [string, string];
   players: string[];
   huroof?: { size: 4 | 5 | 6; rounds: number; buzzer: boolean; seed: number };
-  auction?: { kind: AuctionKind; rounds: number; maxBid: number; slots: number };
+  auction?: { kind: AuctionKind; rounds: number; maxBid: number; slots: number; budget?: number };
 };
 const EMPTY_SESSION: GameSession = { teams: ["فريق السرو", "فريق الكرمل"], players: [] };
 
@@ -155,13 +157,13 @@ function ParticipantFields({ names, onChange }: { names: string[]; onChange: (na
 function AuctionSetup({ mode, initialKind, onStart }: { mode: PlayMode; initialKind: AuctionKind; onStart: (session: GameSession) => void }) {
   const [kind, setKind] = useState<AuctionKind>(initialKind);
   const [teamA, setTeamA] = useState("فريق السرو"); const [teamB, setTeamB] = useState("فريق الكرمل");
-  const [rounds, setRounds] = useState(3); const [maxBid, setMaxBid] = useState(15); const [slots, setSlots] = useState(19);
+  const [rounds, setRounds] = useState(3); const [maxBid, setMaxBid] = useState(15); const [slots, setSlots] = useState(19); const [budget, setBudget] = useState(200);
   return <section className="arcade-panel arcade-auction mx-auto max-w-3xl rounded-[2rem] p-6 sm:p-9">
     <span className="eyebrow">{kind === "billion" ? "مزاد المليار" : "مزاد الأسئلة"} · {mode === "online" ? "غرفة جوالات" : "جهاز واحد"}</span><h1 className="mt-3 text-4xl">{kind === "billion" ? "ابنوا فريقكم بالمزايدة" : "زايدوا وثبّتوا كلمتكم"}</h1>
     {initialKind === "categories" && <div className="mt-7 grid gap-4 sm:grid-cols-2"><button className={`play-mode-card text-start ${kind === "categories" ? "is-active" : ""}`} onClick={() => setKind("categories")}><span className="mode-icon"><Gavel /></span><h2>مزاد الأسئلة</h2><p>زايدوا على عدد الإجابات التي تقدروا تذكروها من سؤال قائمة مفتوحة واحد.</p></button><button className={`play-mode-card text-start ${kind === "billion" ? "is-active" : ""}`} onClick={() => setKind("billion")}><span className="mode-icon"><Trophy /></span><h2>مزاد المليار</h2><p>لاعبان يبنون تشكيلة كرة قدم بميزانية وهمية ومزايدات متتابعة.</p></button></div>}
     <div className="mt-7 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الأول" : "اسم الفريق الأول"}<Input value={teamA} onChange={(event) => setTeamA(event.target.value)} className="mt-2 h-11 bg-background/45" /></label><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الثاني" : "اسم الفريق الثاني"}<Input value={teamB} onChange={(event) => setTeamB(event.target.value)} className="mt-2 h-11 bg-background/45" /></label></div>
-    <div className="mt-6 grid gap-5 sm:grid-cols-3"><SetupChoices title="عدد الجولات" values={[1, 3, 5]} selected={rounds} onChange={setRounds} /><SetupChoices title="أقصى مزايدة" values={[10, 15, 20]} selected={maxBid} onChange={setMaxBid} />{kind === "billion" && <SetupChoices title="خانات التشكيلة" values={[7, 11, 19]} selected={slots} onChange={setSlots} />}</div>
-    <Button className="mt-8" onClick={() => onStart({ teams: [teamA.trim() || "فريق السرو", teamB.trim() || "فريق الكرمل"], players: [], auction: { kind, rounds, maxBid, slots } })}><Gavel /> افتحوا المزاد</Button>
+    <div className="mt-6 grid gap-5 sm:grid-cols-3">{kind === "billion" ? <><SetupChoices title="ميزانية كل لاعب" values={[200, 500, 1000]} selected={budget} onChange={setBudget} /><SetupChoices title="خانات التشكيلة" values={[7, 11, 19]} selected={slots} onChange={setSlots} /></> : <><SetupChoices title="عدد الجولات" values={[1, 3, 5]} selected={rounds} onChange={setRounds} /><SetupChoices title="أقصى مزايدة" values={[10, 15, 20]} selected={maxBid} onChange={setMaxBid} /></>}</div>
+    <Button className="mt-8" onClick={() => onStart({ teams: [teamA.trim() || "فريق السرو", teamB.trim() || "فريق الكرمل"], players: [], auction: { kind, rounds, maxBid, slots, budget } })}><Gavel /> افتحوا المزاد</Button>
   </section>;
 }
 
@@ -172,20 +174,48 @@ function GamePlay({ game, mode, session }: { game: ArcadeGameSlug; mode: PlayMod
   return <MafiaPlay mode={mode} names={session.players} />;
 }
 
-const BILLION_PLAYERS = [
-  { name: "ياسين بونو", position: "حارس", price: 55, rating: 85 }, { name: "أشرف حكيمي", position: "مدافع", price: 72, rating: 84 },
-  { name: "موسى التعمري", position: "جناح", price: 34, rating: 78 }, { name: "محمد صلاح", position: "مهاجم", price: 95, rating: 89 },
-  { name: "كيفن دي بروين", position: "وسط", price: 88, rating: 90 }, { name: "رونالدينيو", position: "صانع لعب", price: 82, rating: 91 },
-];
+const FULL_FORMATION: BillionRole[] = ["GK", "DEF", "DEF", "DEF", "DEF", "MID", "MID", "MID", "FWD", "FWD", "FWD"];
+const QUICK_FORMATION: BillionRole[] = ["GK", "DEF", "DEF", "MID", "MID", "FWD", "FWD"];
+
+function formationFor(slots: number) { return slots < 11 ? QUICK_FORMATION : FULL_FORMATION; }
+
+function placeOnPitch(squad: BillionAuctionPlayer[], slots: number) {
+  const used = new Set<string>();
+  return formationFor(slots).map((role) => {
+    const player = squad.find((candidate) => candidate.role === role && !used.has(candidate.id));
+    if (player) used.add(player.id);
+    return player;
+  });
+}
+
+function SquadPitch({ name, budget, squad, slots, side }: { name: string; budget: number; squad: BillionAuctionPlayer[]; slots: number; side: "a" | "b" }) {
+  const formation = formationFor(slots);
+  const starters = placeOnPitch(squad, slots);
+  const bench = squad.filter((player) => !starters.some((starter) => starter?.id === player.id));
+  const coach = squad.find((player) => player.role === "COACH");
+  return <article className={`billion-squad billion-squad-${side}`}>
+    <header><div><small>ميزانية متبقية</small><strong>{budget.toLocaleString("en-US")}M</strong></div><h2>{name}</h2><span>{squad.length}/{slots} صفقة</span></header>
+    <div className={`billion-pitch slots-${formation.length}`} aria-label={`ملعب ${name}`}>
+      {formation.map((role, index) => {
+        const player = starters[index];
+        return <div className={`pitch-player role-${role.toLowerCase()} ${player ? "is-filled" : ""}`} key={`${role}-${index}`}>
+          {player?.asset && <img src={billionPlayerAsset(player.asset)} alt="" />}
+          <b>{player?.name ?? "+"}</b><small>{player?.position ?? (role === "GK" ? "حارس" : role === "DEF" ? "دفاع" : role === "MID" ? "وسط" : "هجوم")}</small>
+        </div>;
+      })}
+    </div>
+    <footer><span>الاحتياط: {bench.filter((player) => player.role !== "COACH").map((player) => player.name).join(" · ") || "—"}</span><span>المدرب: {coach?.name ?? "—"}</span></footer>
+  </article>;
+}
 
 function AuctionPlay({ session }: { session: GameSession }) {
-  const config = session.auction ?? { kind: "categories" as const, rounds: 3, maxBid: 15, slots: 19 };
+  const config = session.auction ?? { kind: "categories" as const, rounds: 3, maxBid: 15, slots: 19, budget: 200 };
   const [phase, setPhase] = useState<"pick" | "bid" | "challenge" | "result" | "twist">("pick"); const [questionIndex, setQuestionIndex] = useState(0); const [markedAnswers, setMarkedAnswers] = useState<string[]>([]);
-  const [bid, setBid] = useState(3); const [bidder, setBidder] = useState<0 | 1>(0); const [winner, setWinner] = useState<0 | 1 | null>(null);
+  const [bid, setBid] = useState(config.kind === "billion" ? BILLION_AUCTION_PLAYERS[0].price : 3); const [bidder, setBidder] = useState<0 | 1>(0); const [winner, setWinner] = useState<0 | 1 | null>(null);
   const [customBid, setCustomBid] = useState(""); const [bidError, setBidError] = useState("");
   const [correct, setCorrect] = useState(0); const [seconds, setSeconds] = useState(45); const [scores, setScores] = useState<[number, number]>([0, 0]); const [round, setRound] = useState(1);
-  const [playerIndex, setPlayerIndex] = useState(0); const [budgets, setBudgets] = useState<[number, number]>([1000, 1000]); const [squads, setSquads] = useState<[typeof BILLION_PLAYERS, typeof BILLION_PLAYERS]>([[], []]);
-  const teams = session.teams; const featured = BILLION_PLAYERS[playerIndex % BILLION_PLAYERS.length]; const question = AUCTION_QUESTIONS[questionIndex % AUCTION_QUESTIONS.length];
+  const [playerIndex, setPlayerIndex] = useState(0); const [budgets, setBudgets] = useState<[number, number]>([config.budget ?? 200, config.budget ?? 200]); const [squads, setSquads] = useState<[BillionAuctionPlayer[], BillionAuctionPlayer[]]>([[], []]);
+  const teams = session.teams; const featured = BILLION_AUCTION_PLAYERS[playerIndex]; const question = AUCTION_QUESTIONS[questionIndex % AUCTION_QUESTIONS.length];
   useEffect(() => { if (phase !== "challenge" || seconds <= 0) return; const id = window.setInterval(() => setSeconds((value) => value - 1), 1000); return () => window.clearInterval(id); }, [phase, seconds]);
   function beginBid() { setBid(question.suggestedBid); setCustomBid(""); setBidError(""); setBidder(0); setWinner(null); setPhase("bid"); }
   function placeQuestionBid(amount: number) {
@@ -196,10 +226,41 @@ function AuctionPlay({ session }: { session: GameSession }) {
     if (!Number.isInteger(amount) || amount <= bid || amount > budgets[bidder]) { setBidError(`العرض لازم يكون أكبر من ${bid} وما يتجاوز رصيد ${teams[bidder]}.`); return; }
     setBid(amount); setCustomBid(""); setBidError(""); setBidder((current) => current === 0 ? 1 : 0);
   }
+  function passBillionBid() {
+    if (!featured) return;
+    const buyer = bidder === 0 ? 1 : 0;
+    if (budgets[buyer] < bid) { setBidError(`رصيد ${teams[buyer]} لا يكفي للصفقة.`); return; }
+    if (squads[buyer].length >= config.slots) { setBidError(`${teams[buyer]} أكمل خانات تشكيلته؛ مرّروا الصفقة للطرف الثاني.`); return; }
+    setBudgets((value) => buyer === 0 ? [value[0] - bid, value[1]] : [value[0], value[1] - bid]);
+    setSquads((value) => buyer === 0 ? [[...value[0], featured], value[1]] : [value[0], [...value[1], featured]]);
+    const nextIndex = playerIndex + 1;
+    setPlayerIndex(nextIndex); setBid(BILLION_AUCTION_PLAYERS[nextIndex]?.price ?? 0); setBidder(bidder); setCustomBid(""); setBidError("");
+  }
   function withdraw() { const winningTeam = bidder === 0 ? 1 : 0; setWinner(winningTeam); setSeconds(Math.max(30, bid * 5)); setMarkedAnswers([]); setCorrect(0); setPhase("challenge"); }
   function finishChallenge() { if (winner === null) return; setScores((current) => { const next: [number, number] = [...current] as [number, number]; next[correct >= bid ? winner : winner === 0 ? 1 : 0] += bid; return next; }); setPhase("result"); }
   function nextRound() { if (round >= config.rounds) return; const next = round + 1; setRound(next); setQuestionIndex((value) => value + 1); setPhase(next % 4 === 0 ? "twist" : "pick"); }
-  if (config.kind === "billion") return <section className="auction-play auction-billion mx-auto max-w-5xl rounded-[2rem] p-6 text-center sm:p-9"><span className="eyebrow">مزاد المليار · الصفقة {playerIndex + 1}</span><div className="auction-budgets"><strong>{teams[0]} <b>{budgets[0].toLocaleString("en-US")}M</b></strong><strong>{teams[1]} <b>{budgets[1].toLocaleString("en-US")}M</b></strong></div><article className="football-auction-card"><Gavel /><small>{featured.position}</small><h1>{featured.name}</h1><p>التقييم {featured.rating} · يبدأ من {featured.price}M</p></article><div className="auction-bid-number">{bid}<small>مليون</small></div><p className="mt-3 font-bold text-gold">الدور على {teams[bidder]}</p><div className="auction-bid-controls mt-6"><Button disabled={bid + 5 > budgets[bidder]} onClick={() => placeBillionBid(bid + 5)}><Gavel /> +٥M</Button><Button disabled={bid + 10 > budgets[bidder]} onClick={() => placeBillionBid(bid + 10)}>+١٠M</Button><Button disabled={bid + 25 > budgets[bidder]} onClick={() => placeBillionBid(bid + 25)}>+٢٥M</Button><Input inputMode="numeric" type="number" min={bid + 1} max={budgets[bidder]} value={customBid} onChange={(event) => setCustomBid(event.target.value)} placeholder="مزايدة مخصصة" aria-label="مزايدة مخصصة بالملايين" /><Button variant="outline" onClick={() => placeBillionBid(Number(customBid))}>زايد</Button><Button variant="outline" onClick={() => { const buyer = bidder === 0 ? 1 : 0; if (budgets[buyer] < bid) { setBidError("رصيد الفريق الفائز لا يكفي لهذه الصفقة."); return; } setBudgets((value) => buyer === 0 ? [value[0] - bid, value[1]] : [value[0], value[1] - bid]); setSquads((value) => buyer === 0 ? [[...value[0], featured], value[1]] : [value[0], [...value[1], featured]]); const nextIndex = playerIndex + 1; setPlayerIndex(nextIndex); setBid(BILLION_PLAYERS[nextIndex % BILLION_PLAYERS.length].price); setBidder(buyer); setCustomBid(""); setBidError(""); }}>أمرّر</Button></div>{bidError && <p className="mt-3 text-sm text-red-200">{bidError}</p>}<div className="auction-squads"><div><h2>{teams[0]}</h2>{squads[0].map((player) => <span key={player.name}>{player.name}</span>)}</div><div><h2>{teams[1]}</h2>{squads[1].map((player) => <span key={player.name}>{player.name}</span>)}</div></div></section>;
+  if (config.kind === "billion") {
+    const completed = squads[0].length >= config.slots && squads[1].length >= config.slots;
+    if (!featured || completed) return <section className="auction-play auction-billion mx-auto max-w-5xl rounded-[2rem] p-8 text-center"><Trophy className="mx-auto h-12 w-12 text-gold" /><span className="eyebrow">انتهى المزاد</span><h1 className="mt-4">جاهزة التشكيلات للمقارنة</h1><div className="billion-pitches mt-7"><SquadPitch name={teams[0]} budget={budgets[0]} squad={squads[0]} slots={config.slots} side="a" /><SquadPitch name={teams[1]} budget={budgets[1]} squad={squads[1]} slots={config.slots} side="b" /></div></section>;
+    return <section className="auction-play auction-billion mx-auto max-w-[92rem] rounded-[2rem] p-5 text-center sm:p-8">
+      <span className="eyebrow">مزاد المليار · الصفقة {playerIndex + 1} من {BILLION_AUCTION_PLAYERS.length}</span>
+      <p className="mt-2 text-sm text-muted-foreground">{teams[bidder]} يزايد الآن. مرّر لتذهب الصفقة للطرف الثاني على آخر رقم معلن.</p>
+      <div className="billion-pitches mt-6">
+        <SquadPitch name={teams[0]} budget={budgets[0]} squad={squads[0]} slots={config.slots} side="a" />
+        <div className="billion-auction-desk">
+          <article className="football-auction-card">
+            {featured.asset ? <img src={billionPlayerAsset(featured.asset)} alt={`بطاقة ${featured.name}`} /> : <Gavel />}
+            <small>{featured.position}</small><h1>{featured.name}</h1><p>التقييم {featured.rating} · يبدأ من {featured.price}M</p>
+          </article>
+          <div className="auction-bid-number">{bid}<small>مليون</small></div>
+          <p className="mt-3 font-bold text-gold">الدور على {teams[bidder]}</p>
+          <div className="auction-bid-controls mt-5"><Button disabled={bid + 5 > budgets[bidder]} onClick={() => placeBillionBid(bid + 5)}><Gavel /> +٥M</Button><Button disabled={bid + 10 > budgets[bidder]} onClick={() => placeBillionBid(bid + 10)}>+١٠M</Button><Button disabled={bid + 25 > budgets[bidder]} onClick={() => placeBillionBid(bid + 25)}>+٢٥M</Button><Input inputMode="numeric" type="number" min={bid + 1} max={budgets[bidder]} value={customBid} onChange={(event) => setCustomBid(event.target.value)} placeholder="اكتب أي رقم بالملايين" aria-label="مزايدة مخصصة بالملايين" /><Button variant="outline" onClick={() => placeBillionBid(Number(customBid))}>زايد</Button><Button variant="outline" onClick={passBillionBid}>أمرّر</Button></div>
+          {bidError && <p className="mt-3 text-sm text-red-200">{bidError}</p>}
+        </div>
+        <SquadPitch name={teams[1]} budget={budgets[1]} squad={squads[1]} slots={config.slots} side="b" />
+      </div>
+    </section>;
+  }
   if (phase === "pick") return <section className="auction-play mx-auto max-w-4xl rounded-[2rem] p-8 text-center"><span className="eyebrow">مزاد الأسئلة · الجولة {round} من {config.rounds}</span><h1 className="mx-auto mt-6 max-w-3xl text-4xl leading-relaxed">{question.prompt}</h1><p className="mt-5 text-muted-foreground">لا تظهر الإجابات الآن؛ كل فريق يزايد فقط على العدد الذي يقدر يذكره.</p><Button className="mt-8" onClick={beginBid}><Gavel /> ابدأ المزايدة</Button></section>;
   if (phase === "bid") return <section className="auction-play mx-auto max-w-3xl rounded-[2rem] p-8 text-center"><span className="eyebrow">{question.prompt}</span><Gavel className="auction-gavel mx-auto mt-5" /><h1 className="mt-4">الدور على {teams[bidder]}</h1><div className="auction-bid-number">{bid}<small>إجابة</small></div><p className="mt-3 text-muted-foreground">زايدوا بأي رقم أعلى من العرض الحالي، أو مرّروا للفريق الآخر.</p><div className="auction-bid-controls mt-7"><Button disabled={bid + 1 > config.maxBid} onClick={() => placeQuestionBid(bid + 1)}>+١</Button><Button disabled={bid + 2 > config.maxBid} onClick={() => placeQuestionBid(bid + 2)}>+٢</Button><Button disabled={bid + 5 > config.maxBid} onClick={() => placeQuestionBid(bid + 5)}>+٥</Button><Input inputMode="numeric" type="number" min={bid + 1} max={config.maxBid} value={customBid} onChange={(event) => setCustomBid(event.target.value)} placeholder="اكتب رقمك" aria-label="مزايدة مخصصة" /><Button variant="outline" onClick={() => placeQuestionBid(Number(customBid))}>زايد</Button><Button variant="outline" onClick={withdraw}>أمرّر</Button></div>{bidError && <p className="mt-3 text-sm text-red-200">{bidError}</p>}</section>;
   if (phase === "challenge") return <section className="auction-play mx-auto max-w-5xl rounded-[2rem] p-8 text-center"><span className="eyebrow">{question.prompt}</span><h1 className="mt-4">{teams[winner ?? 0]} التزم بـ {bid} إجابات</h1><div className="auction-timer">{seconds}</div><p className="mt-2 font-bold text-gold">الإجابات الصحيحة: {correct} من {bid}</p><p className="mt-1 text-sm text-muted-foreground">مدير اللعبة يعلّم الإجابة التي يسمعها فقط.</p><div className="auction-answer-list mt-7">{question.answers.map((answer) => <button key={answer} className={markedAnswers.includes(answer) ? "is-marked" : ""} onClick={() => setMarkedAnswers((current) => { const next = current.includes(answer) ? current.filter((item) => item !== answer) : [...current, answer]; setCorrect(next.length); return next; })}><Check /> {answer}</button>)}</div><div className="mt-6 flex justify-center gap-3"><Button onClick={finishChallenge} disabled={correct < bid && seconds > 0}>ثبّت النتيجة</Button>{seconds === 0 && <Button variant="outline" onClick={finishChallenge}>انتهى الوقت</Button>}</div></section>;
