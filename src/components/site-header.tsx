@@ -11,7 +11,7 @@ const NAV = [
 ] as const;
 
 const GAME_NAV = [
-  { to: "/arcade", search: { game: "taqha" }, label: "طقّها", Icon: Target },
+  { to: "/arcade", search: { game: "taqha" }, label: "قدّ التحدي", Icon: Target },
   { to: "/arcade", search: { game: "huroof" }, label: "حروف", Icon: Type },
   { to: "/arcade", search: { game: "outsider" }, label: "مين برا السالفة", Icon: Search },
   { to: "/arcade", search: { game: "mafia" }, label: "مافيا", Icon: Skull },
@@ -21,7 +21,7 @@ const GAME_NAV = [
 
 export function Brand() {
   return (
-    <Link to="/" className="brand-lockup flex shrink-0 items-center gap-2" aria-label="طقّها - الصفحة الرئيسية">
+    <Link to="/" className="brand-lockup flex shrink-0 items-center gap-2" aria-label="قدّ التحدي - الصفحة الرئيسية">
       <span className="brand-mark grid h-11 w-11 place-items-center" aria-hidden="true">
         <svg viewBox="0 0 64 64" className="h-10 w-10">
           <circle cx="32" cy="32" r="23" fill="currentColor" opacity=".1" />
@@ -33,7 +33,7 @@ export function Brand() {
         <i className="brand-impact-ring" />
       </span>
       <span className="brand-gradient font-display text-xl font-black leading-none tracking-tight">
-        طقّها
+        قدّ التحدي
         <span className="block text-[11px] font-bold tracking-normal">لَمّة وتحدّي</span>
       </span>
     </Link>

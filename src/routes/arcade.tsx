@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { arcadeGame, type ArcadeGameSlug } from "@/lib/arcade-catalog";
 import { AUCTION_QUESTIONS, AUCTION_TWISTS } from "@/lib/auction-bank";
 import { BILLION_AUCTION_PLAYERS, billionPlayerAsset, type BillionAuctionPlayer, type BillionRole } from "@/lib/billion-auction-players";
+import { BillionAuctionGame } from "@/components/billion-auction-game";
 import { createLetterBoard, findWinningPath, type HuroofOwner } from "@/lib/huroof-engine";
 
 export const Route = createFileRoute("/arcade")({
@@ -155,27 +156,27 @@ function ParticipantFields({ names, onChange }: { names: string[]; onChange: (na
 }
 
 function AuctionSetup({ mode, initialKind, onStart }: { mode: PlayMode; initialKind: AuctionKind; onStart: (session: GameSession) => void }) {
-  const [kind, setKind] = useState<AuctionKind>(initialKind);
+  const kind = initialKind;
   const [teamA, setTeamA] = useState("فريق السرو"); const [teamB, setTeamB] = useState("فريق الكرمل");
-  const [rounds, setRounds] = useState(3); const [maxBid, setMaxBid] = useState(15); const [slots, setSlots] = useState(19); const [budget, setBudget] = useState(200);
+  const [rounds, setRounds] = useState(3); const [maxBid, setMaxBid] = useState(15); const [budget, setBudget] = useState(200);
   return <section className="arcade-panel arcade-auction mx-auto max-w-3xl rounded-[2rem] p-6 sm:p-9">
     <span className="eyebrow">{kind === "billion" ? "مزاد المليار" : "مزاد الأسئلة"} · {mode === "online" ? "غرفة جوالات" : "جهاز واحد"}</span><h1 className="mt-3 text-4xl">{kind === "billion" ? "ابنوا فريقكم بالمزايدة" : "زايدوا وثبّتوا كلمتكم"}</h1>
-    {initialKind === "categories" && <div className="mt-7 grid gap-4 sm:grid-cols-2"><button className={`play-mode-card text-start ${kind === "categories" ? "is-active" : ""}`} onClick={() => setKind("categories")}><span className="mode-icon"><Gavel /></span><h2>مزاد الأسئلة</h2><p>زايدوا على عدد الإجابات التي تقدروا تذكروها من سؤال قائمة مفتوحة واحد.</p></button><button className={`play-mode-card text-start ${kind === "billion" ? "is-active" : ""}`} onClick={() => setKind("billion")}><span className="mode-icon"><Trophy /></span><h2>مزاد المليار</h2><p>لاعبان يبنون تشكيلة كرة قدم بميزانية وهمية ومزايدات متتابعة.</p></button></div>}
     <div className="mt-7 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الأول" : "اسم الفريق الأول"}<Input value={teamA} onChange={(event) => setTeamA(event.target.value)} className="mt-2 h-11 bg-background/45" /></label><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الثاني" : "اسم الفريق الثاني"}<Input value={teamB} onChange={(event) => setTeamB(event.target.value)} className="mt-2 h-11 bg-background/45" /></label></div>
-    <div className="mt-6 grid gap-5 sm:grid-cols-3">{kind === "billion" ? <><SetupChoices title="ميزانية كل لاعب" values={[200, 500, 1000]} selected={budget} onChange={setBudget} /><SetupChoices title="خانات التشكيلة" values={[7, 11, 19]} selected={slots} onChange={setSlots} /></> : <><SetupChoices title="عدد الجولات" values={[1, 3, 5]} selected={rounds} onChange={setRounds} /><SetupChoices title="أقصى مزايدة" values={[10, 15, 20]} selected={maxBid} onChange={setMaxBid} /></>}</div>
-    <Button className="mt-8" onClick={() => onStart({ teams: [teamA.trim() || "فريق السرو", teamB.trim() || "فريق الكرمل"], players: [], auction: { kind, rounds, maxBid, slots, budget } })}><Gavel /> افتحوا المزاد</Button>
+    <div className="mt-6 grid gap-5 sm:grid-cols-3">{kind === "billion" ? <><SetupChoices title="ميزانية كل لاعب" values={[100, 200]} selected={budget} onChange={setBudget} /><p className="self-end text-sm leading-7 text-muted-foreground">سبع جولات ثابتة: حارس، دفاعان، وسطَان، ومهاجمان. في كل جولة بطاقة علنية وبطاقة خفية من نفس المركز.</p></> : <><SetupChoices title="عدد الجولات" values={[1, 3, 5]} selected={rounds} onChange={setRounds} /><SetupChoices title="أقصى مزايدة" values={[10, 15, 20]} selected={maxBid} onChange={setMaxBid} /></>}</div>
+    <Button className="mt-8" onClick={() => onStart({ teams: [teamA.trim() || "فريق السرو", teamB.trim() || "فريق الكرمل"], players: [], auction: { kind, rounds, maxBid, slots: 7, budget } })}><Gavel /> افتحوا المزاد</Button>
   </section>;
 }
 
 function GamePlay({ game, mode, session }: { game: ArcadeGameSlug; mode: PlayMode; session: GameSession }) {
   if (game === "huroof") return <HuroofPlay session={session} />;
   if (game === "outsider") return <OutsiderPlay mode={mode} names={session.players} />;
-  if (game === "auction" || game === "auction-billion") return <AuctionPlay session={session} />;
+  if (game === "auction-billion") return <BillionAuctionGame teams={session.teams} budget={session.auction?.budget ?? 200} />;
+  if (game === "auction") return <AuctionPlay session={session} />;
   return <MafiaPlay mode={mode} names={session.players} />;
 }
 
-const FULL_FORMATION: BillionRole[] = ["GK", "DEF", "DEF", "DEF", "DEF", "MID", "MID", "MID", "FWD", "FWD", "FWD"];
-const QUICK_FORMATION: BillionRole[] = ["GK", "DEF", "DEF", "MID", "MID", "FWD", "FWD"];
+const FULL_FORMATION: BillionRole[] = ["GK", "DEF", "DEF", "DEF", "DEF", "MID", "MID", "MID", "ATT", "ATT", "ATT"];
+const QUICK_FORMATION: BillionRole[] = ["GK", "DEF", "DEF", "MID", "MID", "ATT", "ATT"];
 
 function formationFor(slots: number) { return slots < 11 ? QUICK_FORMATION : FULL_FORMATION; }
 

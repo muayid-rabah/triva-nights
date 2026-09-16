@@ -27,9 +27,9 @@ export const Route = createFileRoute("/play")({
   },
   head: () => ({
     meta: [
-      { title: "لوحة التحدّي | طقّها" },
+      { title: "لوحة التحدّي | قدّ التحدي" },
       { name: "description", content: "لوحة التحدي: ٦ فئات × ٦ أسئلة، مؤقت، ووسائل مساعدة." },
-      { property: "og:title", content: "لوحة تحدي طقّها" },
+      { property: "og:title", content: "لوحة تحدي قدّ التحدي" },
       { property: "og:description", content: "نقاط، مؤقت، ووسائل مساعدة لكل فريق." },
     ],
   }),
@@ -102,7 +102,7 @@ function PlayPage() {
 
       <main className="mx-auto max-w-6xl px-3 py-5">
         <div className="heritage-panel mb-4 rounded-2xl px-4 py-3 text-center text-sm font-bold text-muted-foreground">
-          هسّه دور <span className="text-primary">{game.teams[game.turn].name}</span> — قدامكم ٣ خيارات بكل فئة: دافية، قوية، أو تحدّي الكبار.
+          هسّه دور <span className="text-primary">{game.teams[game.turn].name}</span> — بكل فئة ست بطاقات: سؤالان ٢٠٠، سؤالان ٤٠٠، وسؤالان ٦٠٠؛ حتى يأخذ كل فريق فرصته.
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6 lg:gap-3">
           {game.categories.map((cat) => {
@@ -120,8 +120,9 @@ function PlayPage() {
                   <p className="mt-2 truncate text-xs font-bold">{cat.name}</p>
                 </div>
 
-                {byCategory(cat.id).map((q) => {
+                {byCategory(cat.id).map((q, index) => {
                   const used = game.used.includes(q.id);
+                  const questionNumber = index % 2 + 1;
                   return (
                     <button
                       key={q.id}
@@ -135,7 +136,7 @@ function PlayPage() {
                       )}
                     >
                       <span className={cn("block text-[10px] font-sans font-bold", q.points === 200 ? "text-emerald-100" : q.points === 400 ? "text-yellow-100" : "text-red-100")}>
-                        {roundLevel(q.points)}
+                        {roundLevel(q.points)} · سؤال {questionNumber}
                       </span>
                       <span>{q.points}</span>
                     </button>

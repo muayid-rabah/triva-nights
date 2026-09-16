@@ -123,7 +123,62 @@ const groups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }> = [
   ] },
 ];
 
-const sourceFacts = (slug: string) => groups.flatMap(({ categories }) => categories).find((category) => category.slug === slug)?.facts ?? [];
+// حزمة أعمق للفئات التي تتكرر داخل المجموعات الموسّعة. هذه أسئلة إضافية
+// فعلية وليست عناوين وهمية، وتمنح السحب العشوائي تنوعاً أكبر من نفس البنك.
+const deepFacts: Record<string, Fact[]> = {
+  "world-cup": [
+    q("من المنتخب الذي خسر نهائي كأس العالم 2014 بعد وقت إضافي؟", "الأرجنتين"),
+    q("ما المنتخب الذي استضاف أول كأس عالم وفاز بها؟", "الأوروغواي"),
+    q("من صاحب أسرع هدف في تاريخ كأس العالم للرجال؟", "هاكان شوكور"),
+    q("في أي دولة أقيمت كأس العالم 1994؟", "الولايات المتحدة"),
+  ],
+  "champions-league": [
+    q("من النادي الذي فاز بأول نسخة من كأس أوروبا عام 1956؟", "ريال مدريد"),
+    q("ما المدينة التي استضافت نهائي دوري الأبطال 2005 الشهير؟", "إسطنبول"),
+    q("من سجل هدف الفوز لبرشلونة في نهائي 2009 أمام مانشستر يونايتد؟", "ليونيل ميسي"),
+    q("ما الاسم السابق لدوري أبطال أوروبا قبل 1992؟", "كأس أوروبا للأندية البطلة"),
+  ],
+  "arab-football": [
+    q("أي منتخب عربي بلغ نصف نهائي مونديال 2022؟", "المغرب"),
+    q("من اللاعب الأردني الملقب بالنشمي وسجل في مونديال 2014؟", "حمزة الدردور"),
+    q("أي نادٍ تونسي يحمل الرقم القياسي في دوري أبطال أفريقيا؟", "الترجي الرياضي"),
+    q("ما الدولة التي استضافت كأس آسيا 2023 المقامة مطلع 2024؟", "قطر"),
+  ],
+  "flags-and-countries": [
+    q("ما الدولة الوحيدة الواقعة بالكامل داخل أراضي جنوب أفريقيا؟", "ليسوتو"),
+    q("ما أكبر دولة في العالم من حيث المساحة؟", "روسيا"),
+    q("ما عاصمة كازاخستان الحالية؟", "أستانا"),
+    q("ما الدولة التي يمر بها خط الاستواء وخط غرينتش معاً؟", "غانا"),
+  ],
+  "science-and-space": [
+    q("ما الكوكب الأكثر حرارة في النظام الشمسي رغم أن عطارد أقرب للشمس؟", "الزهرة"),
+    q("ما أكبر كوكب في النظام الشمسي؟", "المشتري"),
+    q("ما اسم المجرة الأقرب الكبيرة إلى درب التبانة؟", "أندروميدا"),
+    q("ما العنصر الأكثر وفرة في الكون؟", "الهيدروجين"),
+  ],
+  "history-and-civilization": [
+    q("من مؤسس مدينة بغداد العباسية؟", "أبو جعفر المنصور"),
+    q("ما الحضارة التي أنشأت مدينة البتراء؟", "الأنباط"),
+    q("في أي سنة سقطت غرناطة وانتهى الحكم الإسلامي في الأندلس؟", "1492"),
+    q("ما المعاهدة التي أنهت الحرب العالمية الأولى مع ألمانيا؟", "فرساي"),
+  ],
+  "technology": [
+    q("ما بروتوكول الويب الآمن الذي يشفّر الاتصال بالمواقع؟", "HTTPS"),
+    q("ما معنى اختصار DNS في الشبكات؟", "نظام أسماء النطاقات"),
+    q("ما الفرق بين ذاكرة RAM والتخزين الدائم بإجابة مختصرة؟", "RAM مؤقتة ومتطايرة"),
+    q("ما لغة الاستعلام المستخدمة غالباً لقواعد البيانات العلائقية؟", "SQL"),
+  ],
+  "jordan-landmarks": [
+    q("ما المحمية الأردنية المعروفة بمراقبة الطيور المهاجرة قرب العقبة؟", "محمية العقبة للطيور"),
+    q("ما الموقع الأردني المدرج في اليونسكو والمشهور بفسيفسائه البيزنطية؟", "أم الرصاص"),
+    q("في أي محافظة تقع محمية ضانا للمحيط الحيوي؟", "الطفيلة"),
+    q("ما اسم الطريق التاريخي الذي يعبر الأردن من الشمال إلى الجنوب؟", "طريق الملوك"),
+  ],
+};
+const sourceFacts = (slug: string) => [
+  ...(groups.flatMap(({ categories }) => categories).find((category) => category.slug === slug)?.facts ?? []),
+  ...(deepFacts[slug] ?? []),
+];
 const topic = (slug: string, name: string, emoji: string, source: string): LibraryCategory => c(slug, name, emoji, [...sourceFacts(source)], "فئة متخصصة من مكتبة طقّها؛ تتوسع أسئلتها الأصلية باستمرار");
 const topicList = (prefix: string, names: string[], emoji: string, source: string) => names.map((name, index) => topic(`${prefix}-${index + 1}`, name, emoji, source));
 
@@ -168,7 +223,14 @@ const allGroups = [...groups, ...requestedGroups];
 
 export const libraryGroups = allGroups.map(({ group }) => group);
 export const libraryCategories: CategoryRow[] = allGroups.flatMap(({ group, categories }) => categories.map((category, index) => ({ id: category.slug, group_id: group.id, sort_order: index + 1, slug: category.slug, name: category.name, description: category.description, image_key: category.image_key, emoji: category.emoji })));
-const pool: QuestionRow[] = allGroups.flatMap(({ categories }) => categories.flatMap((category) => category.facts.map((fact, index) => ({ id: `${category.slug}-${index + 1}`, category_id: category.slug, points: 0, kind: "open" as const, text: fact.text, choices: null, answer: fact.answer, image_url: fact.image ?? null }))));
+const pool: QuestionRow[] = allGroups.flatMap(({ categories }) => categories.flatMap((category) => [...category.facts, ...(deepFacts[category.slug] ?? [])].map((fact, index) => ({ id: `${category.slug}-${index + 1}`, category_id: category.slug, points: 0, kind: "open" as const, text: fact.text, choices: null, answer: fact.answer, image_url: fact.image ?? null }))));
 const shuffle = <T,>(items: T[]) => { const result = [...items]; for (let i = result.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [result[i], result[j]] = [result[j], result[i]]; } return result; };
-export function drawLibraryQuestions(categoryIds: string[]): QuestionRow[] { return categoryIds.flatMap((categoryId) => shuffle(pool.filter((question) => question.category_id === categoryId)).slice(0, 6).map((question, index) => ({ ...question, id: `${question.id}-${crypto.randomUUID()}`, points: (index + 1) * 100 }))); }
+// كل فئة تحتوي بطاقتين لكل مستوى: واحدة لكل فريق عملياً عند تناوب الاختيار.
+// التكرار هنا مقصود في النقاط، وليس تكراراً للسؤال نفسه.
+const BOARD_POINTS = [200, 200, 400, 400, 600, 600] as const;
+export function drawLibraryQuestions(categoryIds: string[]): QuestionRow[] {
+  return categoryIds.flatMap((categoryId) => shuffle(pool.filter((question) => question.category_id === categoryId))
+    .slice(0, BOARD_POINTS.length)
+    .map((question, index) => ({ ...question, id: `${question.id}-${crypto.randomUUID()}`, points: BOARD_POINTS[index] })));
+}
 export const libraryQuestions = pool;

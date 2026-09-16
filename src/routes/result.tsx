@@ -8,7 +8,7 @@ import { useGame } from "@/lib/game-store";
 export const Route = createFileRoute("/result")({
   head: () => ({
     meta: [
-      { title: "النتيجة النهائية | طقّها" },
+      { title: "النتيجة النهائية | قدّ التحدي" },
       { name: "description", content: "شوف الفريق الفائز ومقارنة النقاط بعد ٣٦ سؤال." },
       { property: "og:title", content: "نتيجة اللعبة" },
       { property: "og:description", content: "من كسب اللمّة هالمرة؟" },

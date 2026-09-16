@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CategoryCard } from "@/components/category-card";
+import "@/category-board.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fetchCategories, fetchGroups, fetchQuestionsFor } from "@/lib/db";
@@ -17,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/create-game")({
   head: () => ({
     meta: [
-      { title: "جهّز القعدة | طقّها" },
+      { title: "جهّز القعدة | قدّ التحدي" },
       { name: "description", content: "اختر ٦ فئات، سمِّ الفريقين، وابدأ التحدي بـ ٣٦ سؤال." },
       { property: "og:title", content: "أنشئ لعبتك الآن" },
       { property: "og:description", content: "مكتبة فئات واسعة تتوسع باستمرار." },

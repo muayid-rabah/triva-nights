@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "طقّها | لعبة القعدة الأردنية" },
+      { title: "قدّ التحدي | لعبة القعدة الأردنية" },
       {
         name: "description",
         content: "لعبة تحدي جماعية: ٦ فئات، ٣٦ سؤال، و٣ وسائل مساعدة لكل فريق.",

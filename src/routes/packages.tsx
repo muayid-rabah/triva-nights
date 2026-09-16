@@ -10,9 +10,9 @@ import { fetchPackages } from "@/lib/db";
 export const Route = createFileRoute("/packages")({
   head: () => ({
     meta: [
-      { title: "الباقات | طقّها" },
+      { title: "الباقات | قدّ التحدي" },
       { name: "description", content: "اختر باقتك: لعبة وحدة، ٣ ألعاب، اشتراك شهري، أو باقة بطولة." },
-      { property: "og:title", content: "باقات طقّها" },
+      { property: "og:title", content: "باقات قدّ التحدي" },
       { property: "og:description", content: "باقات مرنة تناسب القعدات والتجمعات العائلية." },
     ],
   }),
@@ -59,7 +59,7 @@ function PackagesPage() {
                     {p.games_count > 100 ? "ألعاب غير محدودة" : `${p.games_count} لعبة كاملة`}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-success" /> صالحة لألعاب طقّها، حروف، برا السالفة ومافيا
+                    <Check className="h-4 w-4 text-success" /> صالحة لألعاب قدّ التحدي، حروف، برا السالفة ومافيا
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-success" /> مكتبة أسئلة وفئات تتجدد باستمرار

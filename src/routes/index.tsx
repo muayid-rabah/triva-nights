@@ -38,13 +38,13 @@ import { ARCADE_GAMES, type ArcadeGameSlug } from "@/lib/arcade-catalog";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "طقّها | لعبة القعدة الأردنية" },
+      { title: "قدّ التحدي | لعبة القعدة الأردنية" },
       {
         name: "description",
         content:
           "لعبة أسئلة جماعية عربية للديوانيات والتجمعات العائلية: اختر ٦ فئات، تحدَّ فريقك المنافس، واستخدم ٥ وسائل مساعدة.",
       },
-      { property: "og:title", content: "طقّها — لعبة الأسئلة الجماعية" },
+      { property: "og:title", content: "قدّ التحدي — لعبة الأسئلة الجماعية" },
       {
         property: "og:description",
         content: "٦ فئات، ٣٦ سؤال، ووسائل مساعدة تقلب اللعبة. جاهزين تلعبون؟",
@@ -131,8 +131,8 @@ function HomePage() {
           <div className="relative mx-auto max-w-3xl">
             <div className="taqha-hero-title">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-bold text-primary">لمّة الدار، والتحدّي حاضر ✦</span>
-              <h1 className="mt-5 font-display text-5xl leading-tight text-primary sm:text-7xl">طقّها!؟</h1>
-              <p className="mt-1 font-display text-2xl text-gold sm:text-3xl">طقّها؟ ولا لسا؟</p>
+              <h1 className="mt-5 font-display text-5xl leading-tight text-primary sm:text-7xl">قدّ التحدي!</h1>
+              <p className="mt-1 font-display text-2xl text-gold sm:text-3xl">جاهزين للتحدي؟</p>
             </div>
             <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">
               منصّة القعدة لأربع ألعاب مختلفة: معلومات، حروف، غموض، ومواجهة. اختاروا اللعبة اللي تناسب لمّتكم وابدأوا فوراً.

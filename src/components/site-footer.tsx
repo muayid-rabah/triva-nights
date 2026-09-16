@@ -36,7 +36,7 @@ export function SiteFooter() {
         </div>
       </div>
       <p className="border-t border-border/60 py-4 text-center text-xs text-muted-foreground">
-        كل الحقوق محفوظة © طقّها ٢٠٢٦
+        كل الحقوق محفوظة © قدّ التحدي ٢٠٢٦
       </p>
     </footer>
   );

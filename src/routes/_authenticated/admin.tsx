@@ -14,9 +14,9 @@ import { fetchCategories, fetchGroups } from "@/lib/db";
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "لوحة الإدارة | طقّها" },
+      { title: "لوحة الإدارة | قدّ التحدي" },
       { name: "description", content: "إدارة الفئات والأسئلة داخل المنصة." },
-      { property: "og:title", content: "لوحة إدارة طقّها" },
+      { property: "og:title", content: "لوحة إدارة قدّ التحدي" },
       { property: "og:description", content: "إضافة وتعديل الفئات والأسئلة." },
     ],
   }),

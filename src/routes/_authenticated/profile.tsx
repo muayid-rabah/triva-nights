@@ -15,9 +15,9 @@ import { normalizePhone, phoneError } from "@/lib/phone";
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
-      { title: "حسابي | طقّها" },
+      { title: "حسابي | قدّ التحدي" },
       { name: "description", content: "عدّل بياناتك الشخصية وتابع رصيد ألعابك." },
-      { property: "og:title", content: "حسابي في طقّها" },
+      { property: "og:title", content: "حسابي في قدّ التحدي" },
       { property: "og:description", content: "بياناتك، رصيدك، وألعابك في مكان واحد." },
     ],
   }),

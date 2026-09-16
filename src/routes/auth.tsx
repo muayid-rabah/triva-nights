@@ -12,9 +12,9 @@ import { normalizePhone, phoneError } from "@/lib/phone";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "تسجيل الدخول | طقّها" },
+      { title: "تسجيل الدخول | قدّ التحدي" },
       { name: "description", content: "سجل دخولك أو أنشئ حساب جديد وابدأ لعبتك المجانية." },
-      { property: "og:title", content: "الدخول إلى طقّها" },
+      { property: "og:title", content: "الدخول إلى قدّ التحدي" },
       { property: "og:description", content: "حساب واحد يكفي لكل ألعابك وباقاتك." },
     ],
   }),
@@ -100,7 +100,7 @@ function AuthPage() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-md px-4 py-12">
-        <h1 className="text-center text-3xl text-primary">حسابك بطقّها</h1>
+        <h1 className="text-center text-3xl text-primary">حسابك بقدّ التحدي</h1>
 
         <div className="mt-8 rounded-3xl border border-border bg-card p-6">
           <Tabs defaultValue="signin">

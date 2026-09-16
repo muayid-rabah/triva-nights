@@ -11,9 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "تواصل معنا | طقّها" },
+      { title: "تواصل معنا | قدّ التحدي" },
       { name: "description", content: "عندك سؤال أو اقتراح فئة جديدة؟ راسلنا وبنرد عليك بأسرع وقت." },
-      { property: "og:title", content: "تواصل مع طقّها" },
+      { property: "og:title", content: "تواصل مع قدّ التحدي" },
       { property: "og:description", content: "استفسارات، اقتراحات فئات، وشراكات." },
     ],
   }),
