@@ -123,8 +123,9 @@ function PlayPage() {
                   <p className="mt-2 truncate text-xs font-bold">{cat.name}</p>
                 </div>
 
-                {byCategory(cat.id).map((q) => {
+                {byCategory(cat.id).map((q, index) => {
                   const used = game.used.includes(q.id);
+                  const questionNumber = index + 1;
                   return (
                     <button
                       key={q.id}

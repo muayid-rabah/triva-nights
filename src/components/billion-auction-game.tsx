@@ -20,10 +20,12 @@ function shuffle<T>(items: T[]) {
   return copy;
 }
 
-function makePairs(): Pair[] {
+function makePairs(pool = "all"): Pair[] {
   const used = new Set<string>();
   return shuffle(FORMATION).map((role) => {
-    const [publicPlayer, hiddenPlayer] = shuffle(BILLION_AUCTION_PLAYERS.filter((player) => player.role === role && !used.has(player.id)));
+    const allForRole = BILLION_AUCTION_PLAYERS.filter((player) => player.role === role && !used.has(player.id));
+    const selectedPool = pool === "all" ? allForRole : allForRole.filter((player) => player.league === pool);
+    const [publicPlayer, hiddenPlayer] = shuffle(selectedPool.length >= 2 ? selectedPool : allForRole);
     if (!publicPlayer || !hiddenPlayer) throw new Error(`لا توجد بطاقات كافية لمركز ${role}`);
     used.add(publicPlayer.id); used.add(hiddenPlayer.id);
     return { role, publicPlayer, hiddenPlayer };
@@ -77,8 +79,8 @@ function simulate(teams: [string, string], squads: [BillionAuctionPlayer[], Bill
   return { score, events: events.sort((a, b) => a.minute - b.minute) };
 }
 
-export function BillionAuctionGame({ teams, budget = 200 }: { teams: [string, string]; budget?: number }) {
-  const [pairs] = useState(makePairs);
+export function BillionAuctionGame({ teams, budget = 200, pool = "all" }: { teams: [string, string]; budget?: number; pool?: string }) {
+  const [pairs] = useState(() => makePairs(pool));
   const [round, setRound] = useState(0);
   const [budgets, setBudgets] = useState<[number, number]>([budget, budget]);
   const [squads, setSquads] = useState<[BillionAuctionPlayer[], BillionAuctionPlayer[]]>([[], []]);

@@ -8,6 +8,7 @@ export type BillionAuctionPlayer = {
   price: number;
   rating: number;
   asset?: string;
+  league?: "premier" | "laliga" | "seriea" | "bundesliga" | "ligue1" | "legends";
 };
 
 const card = (id: string, name: string, role: BillionRole, position: string, price: number, rating: number, asset?: string): BillionAuctionPlayer => ({ id, name, role, position, price, rating, asset });
@@ -77,3 +78,48 @@ export const BILLION_AUCTION_PLAYERS: BillionAuctionPlayer[] = [
 ];
 
 export const billionPlayerAsset = (asset?: string) => asset ? `/assets/billion-players/${encodeURIComponent(asset)}` : undefined;
+
+const playerLeagues: Record<string, BillionAuctionPlayer["league"]> = {
+  messi: "legends", cristiano: "legends", haaland: "premier", mbappe: "ligue1", salah: "premier", vinicius: "laliga", lewandowski: "laliga", kane: "bundesliga",
+  bellingham: "laliga", "de-bruyne": "premier", modric: "laliga", "de-jong": "laliga", lamine: "laliga", griezmann: "laliga", saka: "premier", kvaratskhelia: "seriea",
+  hakimi: "ligue1", "van-dijk": "premier", marquinhos: "ligue1", courtois: "laliga", neuer: "bundesliga", alisson: "premier", bounou: "laliga", donnarumma: "ligue1",
+  ronaldinho: "legends", zidane: "legends", ronaldo: "legends", maradona: "legends", neymar: "legends", henry: "legends", zlatan: "legends", xavi: "legends", iniesta: "legends",
+  casemiro: "premier", ramos: "legends", marcelo: "legends", maldini: "legends", dias: "premier", ederson: "premier", bruno: "premier", rashford: "premier", garnacho: "premier",
+  lautaro: "seriea", thuram: "seriea", barella: "seriea", calhanoglu: "seriea", bastoni: "seriea", dimarco: "seriea", leao: "seriea", pulisic: "seriea", theo: "seriea", maignan: "seriea",
+  kaka: "legends", pirlo: "legends", puyol: "legends",
+};
+
+BILLION_AUCTION_PLAYERS.forEach((player) => { player.league = playerLeagues[player.id] ?? "legends"; });
+BILLION_AUCTION_PLAYERS.push(
+  card("foden", "فيل فودين", "MID", "مانشستر سيتي · وسط", 118, 91, "Phil Foden.webp"),
+  card("bernardo", "برناردو سيلفا", "MID", "مانشستر سيتي · وسط", 96, 89, "Bernardo Silva.webp"),
+  card("rodri", "رودري", "MID", "مانشستر سيتي · ارتكاز", 122, 92, "Rodri.webp"),
+  card("mainoo", "كوبي ماينو", "MID", "مانشستر يونايتد · وسط", 68, 84, "Kobbie Mainoo.webp"),
+  card("palmer", "كول بالمر", "ATT", "تشيلسي · جناح", 105, 90, "Cole Palmer.webp"),
+  card("pedri", "بيدري", "MID", "برشلونة · وسط", 110, 91, "Pedri.webp"),
+  card("musiala", "جمال موسيالا", "MID", "بايرن ميونخ · وسط", 125, 92, "Jamal Musiala.webp"),
+  card("wirtz", "فلوريان فيرتز", "MID", "باير ليفركوزن · وسط", 112, 91, "Florian Wirtz.webp"),
+  card("osimhen", "فيكتور أوسيمين", "ATT", "نابولي · مهاجم", 108, 90, "Victor Osimhen.webp"),
+  card("lautaro-card", "لاوتارو مارتينيز", "ATT", "إنتر ميلان · مهاجم", 118, 91, "Lautaro Martínez.webp"),
+  card("barella-card", "نيكولو باريلا", "MID", "إنتر ميلان · وسط", 98, 90, "Nicolò Barella.webp"),
+  card("hakan-card", "هاكان تشالهان أوغلو", "MID", "إنتر ميلان · وسط", 88, 89, "Hakan Çalhanoğlu.webp"),
+  card("leao-card", "رافاييل لياو", "ATT", "إيه سي ميلان · جناح", 105, 90, "Rafael Leão.webp"),
+  card("bastoni-card", "أليساندرو باستوني", "DEF", "إنتر ميلان · دفاع", 91, 89, "Alessandro Bastoni.webp"),
+  card("dimarco-card", "فيديريكو ديماركو", "DEF", "إنتر ميلان · ظهير", 76, 86, "Federico Dimarco.webp"),
+  card("maignan-card", "مايك مينيان", "GK", "إيه سي ميلان · حارس", 82, 88, "Mike Maignan.webp"),
+  card("pulisic-card", "كريستيان بوليسيتش", "ATT", "إيه سي ميلان · جناح", 82, 87, "Christian Pulisic.webp"),
+  card("theo-card", "ثيو هيرنانديز", "DEF", "إيه سي ميلان · ظهير", 93, 89, "Theo Hernández.webp"),
+  card("dembele", "عثمان ديمبيلي", "ATT", "باريس سان جيرمان · جناح", 112, 91, "Ousmane Dembélé.webp"),
+  card("zaire-emery", "وارن زاير إيمري", "MID", "باريس سان جيرمان · وسط", 80, 86, "Warren Zaïre-Emery.webp"),
+  card("marcos-llorente", "ماركوس يورينتي", "MID", "أتلتيكو مدريد · وسط", 83, 87, "Marcos Llorente.webp"),
+  card("kimmich", "جوشوا كيميش", "DEF", "بايرن ميونخ · دفاع", 101, 90, "Joshua Kimmich.webp"),
+);
+
+for (const player of BILLION_AUCTION_PLAYERS) {
+  if (player.league) continue;
+  player.league = player.id === "foden" || player.id === "bernardo" || player.id === "rodri" || player.id === "mainoo" || player.id === "palmer" ? "premier"
+    : player.id === "pedri" || player.id === "marcos-llorente" ? "laliga"
+    : player.id === "musiala" || player.id === "wirtz" || player.id === "kimmich" ? "bundesliga"
+    : player.id === "dembele" || player.id === "zaire-emery" ? "ligue1"
+    : "seriea";
+}

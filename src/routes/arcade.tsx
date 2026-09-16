@@ -25,7 +25,7 @@ type GameSession = {
   teams: [string, string];
   players: string[];
   huroof?: { size: 4 | 5 | 6; rounds: number; buzzer: boolean; seed: number };
-  auction?: { kind: AuctionKind; rounds: number; slots: number; budget?: number };
+  auction?: { kind: AuctionKind; rounds: number; slots: number; budget?: number; pool?: string };
 };
 const EMPTY_SESSION: GameSession = { teams: ["فريق السرو", "فريق الكرمل"], players: [] };
 
@@ -158,20 +158,21 @@ function ParticipantFields({ names, onChange }: { names: string[]; onChange: (na
 function AuctionSetup({ mode, initialKind, onStart }: { mode: PlayMode; initialKind: AuctionKind; onStart: (session: GameSession) => void }) {
   const kind = initialKind;
   const [teamA, setTeamA] = useState(""); const [teamB, setTeamB] = useState("");
-  const [rounds, setRounds] = useState(3); const [budget, setBudget] = useState(200);
+  const [rounds, setRounds] = useState(3); const [budget, setBudget] = useState(200); const [pool, setPool] = useState("all");
   return <section className="arcade-panel arcade-auction mx-auto max-w-3xl rounded-[2rem] p-6 sm:p-9">
     <span className="eyebrow">{kind === "billion" ? "مزاد المليار" : "مزاد الأسئلة"} · {mode === "online" ? "غرفة جوالات" : "جهاز واحد"}</span><h1 className="mt-3 text-4xl">{kind === "billion" ? "ابنوا فريقكم بالمزايدة" : "زايدوا وثبّتوا كلمتكم"}</h1>
     <div className="mt-7 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الأول" : "اسم الفريق الأول"}<Input value={teamA} onChange={(event) => setTeamA(event.target.value)} className="mt-2 h-11 bg-background/45" /></label><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الثاني" : "اسم الفريق الثاني"}<Input value={teamB} onChange={(event) => setTeamB(event.target.value)} className="mt-2 h-11 bg-background/45" /></label></div>
     <div className="mt-6 grid gap-5 sm:grid-cols-3">{kind === "billion" ? <><SetupChoices title="ميزانية كل لاعب" values={[100, 200]} selected={budget} onChange={setBudget} /><p className="self-end text-sm leading-7 text-muted-foreground">سبع جولات ثابتة: حارس، دفاعان، وسطَان، ومهاجمان. في كل جولة بطاقة علنية وبطاقة خفية من نفس المركز.</p></> : <><SetupChoices title="عدد الجولات" values={[1, 3, 5]} selected={rounds} onChange={setRounds} /><p className="self-end text-sm leading-7 text-muted-foreground">ما في سقف للمزايدة: اكتبوا أي رقم أعلى من العرض. النقاط تُحسب من الإجابات الصحيحة: كل 10 إجابات = نقطة.</p></>}</div>
+    {kind === "billion" && <div className="mt-6"><p className="mb-2 text-sm font-bold">اختاروا اللاعبين المعروضين بالمزاد</p><div className="flex flex-wrap gap-2">{[{ id: "all", label: "كل الأندية" }, { id: "premier", label: "الدوري الإنجليزي" }, { id: "laliga", label: "الدوري الإسباني" }, { id: "seriea", label: "الدوري الإيطالي" }, { id: "bundesliga", label: "الدوري الألماني" }, { id: "ligue1", label: "الدوري الفرنسي" }, { id: "legends", label: "الأساطير" }].map((item) => <ChoiceButton key={item.id} active={pool === item.id} onClick={() => setPool(item.id)}>{item.label}</ChoiceButton>)}</div><p className="mt-2 text-xs text-muted-foreground">إذا لم يكفِ المركز المختار لبطاقتين، يضيف النظام بطاقة احتياطية من النجوم لضمان اكتمال الجولة.</p></div>}
     <p className="mt-4 text-sm text-muted-foreground">سمّوا الطرفين أولاً؛ الأسماء تظهر على الملعب ولوحة النقاط طوال اللعبة.</p>
-    <Button className="mt-5" disabled={!teamA.trim() || !teamB.trim()} onClick={() => onStart({ teams: [teamA.trim(), teamB.trim()], players: [], auction: { kind, rounds, slots: 7, budget } })}><Gavel /> افتحوا المزاد</Button>
+    <Button className="mt-5" disabled={!teamA.trim() || !teamB.trim()} onClick={() => onStart({ teams: [teamA.trim(), teamB.trim()], players: [], auction: { kind, rounds, slots: 7, budget, pool } })}><Gavel /> افتحوا المزاد</Button>
   </section>;
 }
 
 function GamePlay({ game, mode, session }: { game: ArcadeGameSlug; mode: PlayMode; session: GameSession }) {
   if (game === "huroof") return <HuroofPlay session={session} />;
   if (game === "outsider") return <OutsiderPlay mode={mode} names={session.players} />;
-  if (game === "auction-billion") return <BillionAuctionGame teams={session.teams} budget={session.auction?.budget ?? 200} />;
+  if (game === "auction-billion") return <BillionAuctionGame teams={session.teams} budget={session.auction?.budget ?? 200} pool={session.auction?.pool} />;
   if (game === "auction") return <AuctionPlay session={session} />;
   return <MafiaPlay mode={mode} names={session.players} />;
 }
