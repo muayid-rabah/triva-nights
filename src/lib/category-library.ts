@@ -2,13 +2,24 @@ import type { CategoryRow, QuestionRow } from "./game-types";
 
 /** Original local question bank. A session draws a fresh six-card set from
  * every selected category, preventing the same board from repeating. */
-type Fact = { text: string; answer: string; image?: string };
+type Fact = { text: string; answer: string; image?: string; audio?: string; video?: string };
 type LibraryCategory = Omit<CategoryRow, "id" | "group_id" | "sort_order"> & { facts: Fact[] };
 export interface LibraryGroup { id: string; slug: string; name: string; sort_order: number }
 
-const commons = (file: string) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=720`;
+const localQuizPlayers: Record<string, string> = {
+  "Lionel Messi WC2022.jpg": "Lionel Messi.webp",
+  "Mo Salah.jpg": "Mohamed Salah.webp",
+  "Cristiano Ronaldo 2018.jpg": "Cristiano Ronaldo.webp",
+  "Luka Modric 2018.jpg": "Luka Modrić.webp",
+  "Karim Benzema 2018.jpg": "Karim Benzema.webp",
+  "Kylian Mbappé 2018.jpg": "Kylian Mbappé.webp",
+};
+const playerImage = (file: string) => `/assets/billion-players/${encodeURIComponent(file)}`;
+const commons = (file: string) => localQuizPlayers[file] ? playerImage(localQuizPlayers[file]) : `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=720`;
 const flag = (code: string) => `https://flagcdn.com/w640/${code}.png`;
 const q = (text: string, answer: string, image?: string): Fact => ({ text, answer, image });
+const qa = (text: string, answer: string, audio: string): Fact => ({ text, answer, audio });
+const qv = (text: string, answer: string, video: string): Fact => ({ text, answer, video });
 const c = (slug: string, name: string, emoji: string, facts: Fact[], description = "أسئلة أصلية متدرجة ومتنوعة"): LibraryCategory => ({ slug, name, emoji, description, image_key: null, facts });
 
 const groups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }> = [
@@ -219,11 +230,32 @@ const requestedGroups: Array<{ group: LibraryGroup; categories: LibraryCategory[
   ] },
 ];
 
-const allGroups = [...groups, ...requestedGroups];
+const mediaGroups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }> = [
+  { group: { id: "media-challenges", slug: "media-challenges", name: "تحديات صوت وصورة", sort_order: 28 }, categories: [
+    c("football-clips", "شاهد وخمّن", "🎥", [
+      qv("شاهدوا اللقطة: من اللاعب الذي قاد الهجمة الحاسمة للأرجنتين أمام المكسيك؟", "ليونيل ميسي", "https://www.youtube-nocookie.com/embed/Rb6P2sdlJTE?rel=0"),
+      qv("شاهدوا اللقطة: من نجم فرنسا الذي تألق أمام بولندا في مونديال 2022؟", "كيليان مبابي", "https://www.youtube-nocookie.com/embed/xnBr_gSPz8U?rel=0"),
+      qv("شاهدوا اللقطة: من اللاعب البرتغالي صاحب الرقم القياسي في المباراة؟", "كريستيانو رونالدو", "https://www.youtube-nocookie.com/embed/RJ4jlutcSbY?rel=0"),
+      qv("شاهدوا اللقطة: من قائد الأرجنتين الذي سجّل في مونديال 2022؟", "ليونيل ميسي", "https://www.youtube-nocookie.com/embed/olq9q-HeUc0?rel=0"),
+      q("مين هاض اللاعب؟", "إيرلينغ هالاند", playerImage("Erling Haaland.webp")),
+      q("مين هاض اللاعب؟", "جود بيلينغهام", playerImage("Jude Bellingham.webp")),
+    ], "لقطات رسمية وصور محلية واضحة؛ شاهدوا ثم جاوبوا"),
+    c("audio-clues", "اسمع وخمّن", "🔊", [
+      qa("اسمعوا الوصف ثم حدّدوا الآلة.", "العود", "آلة شرقية لها أوتار وتُعزف بالريشة، وتُستخدم كثيراً في الموسيقى العربية."),
+      qa("اسمعوا الوصف ثم حدّدوا الآلة.", "البيانو", "آلة موسيقية لها مفاتيح بيضاء وسوداء، وتعزف بالنقر على المفاتيح."),
+      qa("اسمعوا الوصف ثم حدّدوا اللاعب.", "ليونيل ميسي", "لاعب أرجنتيني فاز بكأس العالم 2022، واشتهر بالرقم عشرة."),
+      qa("اسمعوا الوصف ثم حدّدوا اللاعب.", "محمد صلاح", "لاعب مصري يلعب في مركز الجناح، واشتهر مع نادي ليفربول."),
+      qa("اسمعوا الوصف ثم حدّدوا المدينة.", "عمّان", "عاصمة الأردن، وتشتهر بقلعة تاريخية ومدرج روماني في وسط المدينة."),
+      qa("اسمعوا الوصف ثم حدّدوا الكوكب.", "المريخ", "كوكب في المجموعة الشمسية يُعرف بالكوكب الأحمر."),
+    ], "مقاطع صوتية تُشغّل داخل اللعبة مع نص بديل عند الحاجة"),
+  ] },
+];
+
+const allGroups = [...groups, ...requestedGroups, ...mediaGroups];
 
 export const libraryGroups = allGroups.map(({ group }) => group);
 export const libraryCategories: CategoryRow[] = allGroups.flatMap(({ group, categories }) => categories.map((category, index) => ({ id: category.slug, group_id: group.id, sort_order: index + 1, slug: category.slug, name: category.name, description: category.description, image_key: category.image_key, emoji: category.emoji })));
-const pool: QuestionRow[] = allGroups.flatMap(({ categories }) => categories.flatMap((category) => [...category.facts, ...(deepFacts[category.slug] ?? [])].map((fact, index) => ({ id: `${category.slug}-${index + 1}`, category_id: category.slug, points: 0, kind: "open" as const, text: fact.text, choices: null, answer: fact.answer, image_url: fact.image ?? null }))));
+const pool: QuestionRow[] = allGroups.flatMap(({ categories }) => categories.flatMap((category) => [...category.facts, ...(deepFacts[category.slug] ?? [])].map((fact, index) => ({ id: `${category.slug}-${index + 1}`, category_id: category.slug, points: 0, kind: "open" as const, text: fact.text, choices: null, answer: fact.answer, image_url: fact.image ?? null, audio_text: fact.audio ?? null, video_url: fact.video ?? null }))));
 const shuffle = <T,>(items: T[]) => { const result = [...items]; for (let i = result.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [result[i], result[j]] = [result[j], result[i]]; } return result; };
 // كل فئة تحتوي بطاقتين لكل مستوى: واحدة لكل فريق عملياً عند تناوب الاختيار.
 // التكرار هنا مقصود في النقاط، وليس تكراراً للسؤال نفسه.
@@ -236,11 +268,16 @@ export function drawLibraryQuestions(categoryIds: string[]): QuestionRow[] {
   })();
   const drawn = categoryIds.flatMap((categoryId) => {
     const candidates = pool.filter((question) => question.category_id === categoryId);
+    // “Who is this player?” is a visual question, so never draw one of its
+    // old remote-image cards when a bundled player photo is available.
+    const playableCandidates = categoryId === "players-by-photo"
+      ? candidates.filter((question) => question.image_url?.startsWith("/assets/billion-players/"))
+      : candidates;
     const seen = new Set(seenByCategory[categoryId] ?? []);
     // Do not repeat this browser's questions until the category bank is used.
-    const eligible = candidates.filter((question) => !seen.has(question.id));
-    const selected = shuffle(eligible.length >= BOARD_POINTS.length ? eligible : candidates).slice(0, BOARD_POINTS.length);
-    seenByCategory[categoryId] = [...seen, ...selected.map((question) => question.id)].slice(-candidates.length);
+    const eligible = playableCandidates.filter((question) => !seen.has(question.id));
+    const selected = shuffle(eligible.length >= BOARD_POINTS.length ? eligible : playableCandidates).slice(0, BOARD_POINTS.length);
+    seenByCategory[categoryId] = [...seen, ...selected.map((question) => question.id)].slice(-playableCandidates.length);
     return selected.map((question, index) => ({ ...question, id: `${question.id}-${crypto.randomUUID()}`, points: BOARD_POINTS[index] }));
   });
   if (typeof window !== "undefined") {

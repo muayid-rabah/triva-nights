@@ -8,6 +8,8 @@ import {
   Phone,
   Shell,
   Shovel,
+  Video,
+  Volume2,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -167,6 +169,50 @@ function PlayPage() {
   );
 }
 
+function QuestionMedia({ question }: { question: QuestionRow }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  function playAudioClue() {
+    if (!question.audio_text || typeof window === "undefined" || !("speechSynthesis" in window)) {
+      toast.error("المتصفح لا يدعم تشغيل هذا المقطع الصوتي.");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(question.audio_text);
+    utterance.lang = "ar-JO";
+    utterance.rate = 0.9;
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  return <>
+    {question.image_url && !imageFailed && (
+      <figure className="mx-auto mt-6 w-full max-w-md overflow-hidden rounded-2xl border border-gold/40 bg-card shadow-lg">
+        <img src={question.image_url} alt="صورة السؤال" onError={() => setImageFailed(true)} className="h-48 w-full object-contain sm:h-64" />
+      </figure>
+    )}
+    {question.image_url && imageFailed && (
+      <p className="mx-auto mt-5 max-w-md rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">تعذّر تحميل الصورة. حدّثوا الصفحة أو اختاروا بطاقة أخرى.</p>
+    )}
+    {question.video_url && (
+      <figure className="mx-auto mt-6 w-full max-w-2xl overflow-hidden rounded-2xl border border-gold/40 bg-black shadow-lg">
+        <figcaption className="flex items-center justify-center gap-2 bg-surface px-4 py-2 text-sm font-bold text-gold"><Video className="h-4 w-4" /> شاهدوا المقطع ثم جاوبوا</figcaption>
+        <div className="aspect-video"><iframe className="h-full w-full" src={question.video_url} title="مقطع سؤال" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
+      </figure>
+    )}
+    {question.audio_text && (
+      <div className="mx-auto mt-6 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-gold/40 bg-surface p-4">
+        <span className="text-sm font-bold text-gold">مقطع صوتي</span>
+        <Button type="button" variant="secondary" onClick={playAudioClue}><Volume2 className={cn("ms-2 h-5 w-5", speaking && "animate-pulse")} /> {speaking ? "جارٍ التشغيل…" : "شغّل المقطع"}</Button>
+        <p className="text-xs text-muted-foreground">يمكنكم إعادة تشغيل المقطع قبل كشف الإجابة.</p>
+      </div>
+    )}
+  </>;
+}
+
 function QuestionModal({
   question,
   category,
@@ -292,9 +338,7 @@ function QuestionModal({
         </div>
         <h2 className="mt-7 text-2xl leading-relaxed sm:text-4xl">{question.text}</h2>
 
-        {question.image_url && (
-          <img src={question.image_url} alt="صورة السؤال" className="mx-auto mt-6 h-32 max-w-full rounded-2xl border border-border bg-card object-cover shadow-lg sm:h-44" />
-        )}
+        <QuestionMedia question={question} />
 
         {question.kind === "mcq" ? (
           <div className="mx-auto mt-8 grid w-full max-w-3xl gap-3 sm:grid-cols-2">

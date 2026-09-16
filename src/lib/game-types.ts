@@ -55,6 +55,10 @@ export interface QuestionRow {
   choices: string[] | null;
   answer: string;
   image_url?: string | null;
+  /** Optional rich-media fields are populated by the built-in question bank.
+   * They remain optional so older Supabase rows keep working unchanged. */
+  audio_text?: string | null;
+  video_url?: string | null;
 }
 
 export interface CategoryRow {
