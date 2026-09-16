@@ -120,9 +120,9 @@ function CreateGamePage() {
           creditError.code === "PGRST202" ||
           /consume_game_credit|function.*not found|schema cache/i.test(creditError.message);
         if (!missingCreditRpc) throw creditError;
-        toast.warning("تعذّر تحديث رصيد اللعبة حالياً؛ بدأت الجولة التجريبية.", {
-          description: "شغّل migration 0009 في Supabase لتفعيل خصم الرصيد تلقائياً.",
-        });
+        // The database repair is only needed to restore credit accounting. A
+        // local game can still start, so do not expose an alarming trial-mode
+        // message to the players.
       }
       await refetchAccess();
       startGame({

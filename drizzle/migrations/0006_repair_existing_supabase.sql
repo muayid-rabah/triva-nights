@@ -77,7 +77,7 @@ BEGIN
   IF lower(clean_body) ~ '(fuck|shit|شرموط|قحبة|خرا|طيز)' THEN RAISE EXCEPTION 'COMMENT_BLOCKED'; END IF;
   SELECT trim(concat_ws(' ', first_name, last_name)) INTO name_text FROM public.profiles WHERE id = auth.uid();
   INSERT INTO public.comments (user_id, display_name, body)
-  VALUES (auth.uid(), COALESCE(NULLIF(name_text, ''), 'لاعب طقّها'), clean_body)
+  VALUES (auth.uid(), COALESCE(NULLIF(name_text, ''), 'لاعب قدّ التحدي'), clean_body)
   RETURNING * INTO result;
   RETURN result;
 END;

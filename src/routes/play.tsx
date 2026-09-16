@@ -442,7 +442,7 @@ function QuestionModal({
             <p className="text-sm font-black tracking-wide text-gold">نتيجة الجولة</p>
             {resolution.team ? (
               <>
-                <p className="taqha-hit-text mt-2 text-2xl font-black sm:text-4xl">طقّيتوها يا {resolution.team}! 🔥</p>
+                <p className="taqha-hit-text mt-2 text-2xl font-black sm:text-4xl">أبدعتم يا {resolution.team}! 🔥</p>
                 <p className="mt-2 text-lg font-bold text-success">أخذوا {resolution.points} نقطة</p>
               </>
             ) : (

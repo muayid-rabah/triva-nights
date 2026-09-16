@@ -10,7 +10,7 @@ export interface ArcadeGame {
 }
 
 export const ARCADE_GAMES: ArcadeGame[] = [
-  { slug: "taqha", name: "قدّ التحدي", tagline: "سؤال وجواب على السريع", description: "اختاروا الفئات، طقّوا الجواب، واجمعوا النقاط.", accent: "taqha", players: "فريقين" },
+  { slug: "taqha", name: "قدّ التحدي", tagline: "سؤال وجواب على السريع", description: "اختاروا الفئات، جاوبوا بسرعة، واجمعوا النقاط.", accent: "taqha", players: "فريقين" },
   { slug: "huroof", name: "حروف", tagline: "شبكة السيطرة الحماسية", description: "جاوبوا على السؤال، خذوا خلية، ووصلوا خط فريقكم قبل الخصم.", accent: "huroof", players: "فريقان" },
   { slug: "outsider", name: "مين برا السالفة", tagline: "اكتشفوا المتخفي", description: "كلّكم عارفين الكلمة… إلا واحد لازم تكتشفوه.", accent: "outsider", players: "٥ لاعبين أو أكثر" },
   { slug: "mafia", name: "مافيا", tagline: "الليل إله حكي ثاني", description: "أدوار سرية، نقاش، وتصويت قبل ما تغمض عيونكم.", accent: "mafia", players: "٥–٢٠ لاعب" },

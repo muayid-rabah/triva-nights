@@ -587,7 +587,7 @@ blockquote::before { content: "“"; position: absolute; inset-inline-start: 1re
   animation: pop-in 0.25s ease-out;
 }
 
-/* Arcade: a shared visual system for every game in the طقّها universe. */
+/* Arcade: a shared visual system for every game in the قدّ التحدي universe. */
 .games-menu { background: linear-gradient(145deg, rgb(42 29 23 / .98), rgb(26 20 16 / .98)); backdrop-filter: blur(18px); }
 .game-launcher-rail { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .65rem; margin-inline: auto; max-width: 1080px; direction: rtl; }
 .game-launcher { position: relative; display: flex; min-height: 132px; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgb(201 168 92 / .68); border-radius: 1.4rem 1.4rem .45rem .45rem; padding: 1rem .5rem .7rem; color: #F5EDE0; background: linear-gradient(155deg, var(--launcher-accent-light), var(--launcher-accent)); box-shadow: inset 0 1px 0 rgb(245 237 224 / .18), inset 0 -15px 22px rgb(0 0 0 / .16), 0 14px 22px -19px #000; transition: transform .2s ease, border-color .2s ease, filter .2s ease; }

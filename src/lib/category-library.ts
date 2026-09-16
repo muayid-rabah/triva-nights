@@ -251,7 +251,11 @@ const mediaGroups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }>
   ] },
 ];
 
-const allGroups = [...groups, ...requestedGroups, ...mediaGroups];
+// Do not surface a category until its title and every question in its bank have
+// been reviewed together. The requested list remains as editorial source
+// material, but the generic placeholder banks must never reach a game board.
+void requestedGroups;
+const allGroups = [...groups, ...mediaGroups];
 
 export const libraryGroups = allGroups.map(({ group }) => group);
 export const libraryCategories: CategoryRow[] = allGroups.flatMap(({ group, categories }) => categories.map((category, index) => ({ id: category.slug, group_id: group.id, sort_order: index + 1, slug: category.slug, name: category.name, description: category.description, image_key: category.image_key, emoji: category.emoji })));
