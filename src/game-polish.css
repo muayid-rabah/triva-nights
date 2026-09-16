@@ -1,0 +1,24 @@
+/* Richer category covers without depending on fragile remote images. */
+.category-select-card{isolation:isolate;border-radius:1.35rem!important;background:radial-gradient(circle at 50% 0,rgba(237,188,81,.18),transparent 49%),linear-gradient(155deg,#4d2b22,#21130f)!important}
+.category-select-card>div{position:relative;border-color:rgba(237,198,102,.48)!important;background:radial-gradient(circle at 50% 24%,rgba(255,223,139,.18),transparent 42%),linear-gradient(145deg,#423820,#1d1610)!important;box-shadow:inset 0 1px rgba(255,255,255,.16),0 .5rem 1rem rgba(0,0,0,.24)}
+.category-select-card>div::after{content:"";position:absolute;inset:.45rem;border:1px solid rgba(239,206,122,.25);border-radius:.65rem;pointer-events:none}
+.category-select-card .category-artwork{background:radial-gradient(circle at 50% 28%,rgba(244,209,120,.24),transparent 38%),linear-gradient(135deg,#554127,#21160f)}
+.category-select-card .category-emoji{font-size:clamp(2.5rem,4vw,4.1rem);filter:drop-shadow(0 .42rem .25rem rgba(0,0,0,.45))}
+.category-select-card>span{position:relative;z-index:1;font-size:.88rem!important;font-weight:950!important}
+
+/* The bundled player source is a FIFA-style card. Crop the printed lower
+   portion so the player name is never visible in a “who is this?” question. */
+.player-photo-question{position:relative;background:radial-gradient(circle at 50% 18%,#70511c,#17120e)}
+.player-photo-question img{object-fit:cover!important;object-position:center top;transform:scale(1.12);transform-origin:top center}
+.player-photo-question::after{content:"";position:absolute;right:0;bottom:0;left:0;height:24%;background:linear-gradient(transparent,#17120e 30%)}
+
+/* Match the colourful reference board: gold centre, coral diagonals, white
+   hexagons and the unmistakable purple outline. */
+.huroof-board-shell{min-height:min(66vw,620px)!important;border:4px solid #68399a!important;border-radius:.65rem!important;background:linear-gradient(45deg,#ff7c7e 0 24%,transparent 24%) bottom left/50% 100% no-repeat,linear-gradient(-45deg,#ff7c7e 0 24%,transparent 24%) bottom right/50% 100% no-repeat,linear-gradient(135deg,#ff7c7e 0 24%,transparent 24%) top left/50% 100% no-repeat,linear-gradient(-135deg,#ff7c7e 0 24%,transparent 24%) top right/50% 100% no-repeat,#ffd88c!important;box-shadow:none!important}
+.huroof-edge{display:none!important}
+.huroof-new-grid{--hex-size:clamp(3.2rem,calc(48vw / var(--huroof-size)),7.45rem)!important}
+.huroof-new-hex{background:#fffdf7!important;color:#70409d!important;box-shadow:inset 0 0 0 4px #70409d,inset 0 4px 0 rgba(255,255,255,.95),inset 0 -5px 0 rgba(86,47,129,.16)!important}
+.huroof-new-hex::after{border-color:rgba(112,64,157,.12)!important}
+.huroof-new-hex.team-A{background:#2d8d58!important;color:#fff!important;box-shadow:inset 0 0 0 4px #17673a,inset 0 4px rgba(237,255,220,.42),inset 0 -6px #17673a!important}
+.huroof-new-hex.team-B{background:#c64b52!important;color:#fff!important;box-shadow:inset 0 0 0 4px #8e273a,inset 0 4px rgba(255,241,223,.42),inset 0 -6px #8e273a!important}
+@media (max-width:640px){.huroof-board-shell{min-height:390px!important;padding:3rem 1.5rem!important}.huroof-new-grid{--hex-size:clamp(2.4rem,calc(48vw / var(--huroof-size)),4.25rem)!important}}

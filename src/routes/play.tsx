@@ -171,6 +171,7 @@ function PlayPage() {
 function QuestionMedia({ question }: { question: QuestionRow }) {
   const [imageFailed, setImageFailed] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const isPlayerPhoto = question.category_id === "players-by-photo";
 
   function playAudioClue() {
     if (!question.audio_text || typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -181,15 +182,18 @@ function QuestionMedia({ question }: { question: QuestionRow }) {
     const utterance = new SpeechSynthesisUtterance(question.audio_text);
     utterance.lang = "ar-JO";
     utterance.rate = 0.9;
+    const arabicVoice = window.speechSynthesis.getVoices().find((voice) => voice.lang.toLowerCase().startsWith("ar"));
+    if (arabicVoice) utterance.voice = arabicVoice;
     utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
+    utterance.onerror = () => { setSpeaking(false); toast.error("تعذّر تشغيل الصوت من المتصفح. تأكدوا من رفع صوت الجهاز ثم أعيدوا المحاولة."); };
     setSpeaking(true);
+    window.speechSynthesis.resume();
     window.speechSynthesis.speak(utterance);
   }
 
   return <>
     {question.image_url && !imageFailed && (
-      <figure className="mx-auto mt-6 w-full max-w-md overflow-hidden rounded-2xl border border-gold/40 bg-card shadow-lg">
+      <figure className={cn("mx-auto mt-6 w-full max-w-md overflow-hidden rounded-2xl border border-gold/40 bg-card shadow-lg", isPlayerPhoto && "player-photo-question")}>
         <img src={question.image_url} alt="صورة السؤال" onError={() => setImageFailed(true)} className="h-48 w-full object-contain sm:h-64" />
       </figure>
     )}
