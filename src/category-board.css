@@ -1,2 +1,17 @@
 .category-select-card{min-height:12.4rem;border-color:rgba(207,165,74,.48);background:linear-gradient(145deg,rgba(75,47,28,.96),rgba(31,18,13,.98));box-shadow:inset 0 1px rgba(255,247,219,.08),0 .5rem 1.2rem rgba(0,0,0,.2)}
 .category-select-card:before{content:"";position:absolute;inset:0;background:linear-gradient(125deg,rgba(255,255,255,.13),transparent 28%);pointer-events:none}.category-select-card:hover{border-color:#e3bc55;transform:translateY(-3px)}.category-select-card.is-selected{background:linear-gradient(145deg,rgba(103,46,31,1),rgba(51,22,17,1))}.category-select-card>div{border:1px solid rgba(222,183,85,.25)}
+
+/* Each category is a complete board: 200/400/600 on both sides. */
+.taqha-board-grid{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:1rem}
+.taqha-board-card{display:grid;grid-template-columns:minmax(4.25rem,.8fr) minmax(7.5rem,1.25fr) minmax(4.25rem,.8fr);grid-template-rows:repeat(3,minmax(4.1rem,1fr));gap:.45rem;min-height:13.1rem;padding:.5rem;border:1px solid rgba(207,165,74,.42);border-radius:1.35rem;background:linear-gradient(145deg,rgba(68,40,25,.86),rgba(26,17,13,.96));box-shadow:inset 0 1px rgba(255,247,219,.1),0 .7rem 1.25rem rgba(0,0,0,.22)}
+.taqha-category-core{grid-column:2;grid-row:1 / span 3;display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center;padding:.55rem!important;background:linear-gradient(145deg,rgba(78,46,27,.9),rgba(32,18,14,.98))!important}
+.taqha-category-core>div{height:4.45rem!important;width:4.45rem!important;flex:none;border:1px solid rgba(225,188,94,.38)}
+.taqha-category-core p{margin-top:.45rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem;font-weight:900}
+.taqha-board-card>button{height:auto!important;min-height:4.1rem;border-radius:999px!important;padding:.25rem!important}
+.taqha-board-card>button:nth-of-type(1),.taqha-board-card>button:nth-of-type(3),.taqha-board-card>button:nth-of-type(5){grid-column:1}
+.taqha-board-card>button:nth-of-type(2),.taqha-board-card>button:nth-of-type(4),.taqha-board-card>button:nth-of-type(6){grid-column:3}
+.taqha-board-card>button:nth-of-type(1),.taqha-board-card>button:nth-of-type(2){grid-row:1}.taqha-board-card>button:nth-of-type(3),.taqha-board-card>button:nth-of-type(4){grid-row:2}.taqha-board-card>button:nth-of-type(5),.taqha-board-card>button:nth-of-type(6){grid-row:3}
+.taqha-board-card>button>span{font-size:1.12rem;line-height:1}.taqha-board-card>button>span+span{margin-top:.22rem;font-size:.63rem;line-height:1.1}
+.taqha-board-card>button:disabled{filter:saturate(.15);opacity:.42}
+@media (min-width:680px){.taqha-board-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:1.15rem}}
+@media (min-width:1180px){.taqha-board-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.taqha-board-card{min-height:14rem}}

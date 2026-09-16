@@ -19,6 +19,7 @@ import { categoryImage } from "@/lib/category-images";
 import { CategoryArtwork } from "@/components/category-artwork";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import "@/category-board.css";
 
 export const Route = createFileRoute("/play")({
   beforeLoad: async () => {
@@ -104,12 +105,12 @@ function PlayPage() {
         <div className="heritage-panel mb-4 rounded-2xl px-4 py-3 text-center text-sm font-bold text-muted-foreground">
           هسّه دور <span className="text-primary">{game.teams[game.turn].name}</span> — بكل فئة ست بطاقات: سؤالان ٢٠٠، سؤالان ٤٠٠، وسؤالان ٦٠٠؛ حتى يأخذ كل فريق فرصته.
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6 lg:gap-3">
+        <div className="taqha-board-grid">
           {game.categories.map((cat) => {
             const img = categoryImage(cat.image_key);
             return (
-              <div key={cat.id} className="flex flex-col gap-2">
-                <div className="heritage-card rounded-2xl border border-border bg-card p-2 text-center">
+              <div key={cat.id} className="taqha-board-card">
+                <div className="taqha-category-core heritage-card rounded-2xl border border-border bg-card p-2 text-center">
                   <div className="mx-auto grid h-12 w-12 place-items-center overflow-hidden rounded-xl bg-surface-2">
                     {img ? (
                       <img src={img} alt={cat.name} loading="lazy" width={512} height={512} className="h-full w-full object-cover" />

@@ -96,7 +96,8 @@ function CreateGamePage() {
         .map((id) => categories.find((c) => c.id === id))
         .filter(Boolean) as CategoryRow[];
 
-      if (chosen.length !== 6 || questions.length < 36) {
+      const incompleteCategory = chosen.some((category) => questions.filter((question) => question.category_id === category.id).length < 6);
+      if (chosen.length !== 6 || incompleteCategory) {
         throw new Error("لم نتمكن من تحميل أسئلة كافية للفئات المختارة.");
       }
 
