@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
-import { arcadeGame, type ArcadeGameSlug } from "@/lib/arcade-catalog";
+import { arcadeGame, type ArcadeGame, type ArcadeGameSlug } from "@/lib/arcade-catalog";
 import { AUCTION_QUESTIONS, AUCTION_TWISTS } from "@/lib/auction-bank";
 import { BILLION_AUCTION_PLAYERS, billionPlayerAsset, type BillionAuctionPlayer, type BillionRole } from "@/lib/billion-auction-players";
 import { BillionAuctionGame } from "@/components/billion-auction-game";
@@ -30,35 +30,22 @@ type GameSession = {
 const EMPTY_SESSION: GameSession = { teams: ["فريق السرو", "فريق الكرمل"], players: [] };
 
 function ArcadePage() {
-  const navigate = useNavigate();
   const { game: requestedGame } = Route.useSearch();
   const game = arcadeGame(requestedGame);
+  return <ArcadeSession key={game.slug} game={game} />;
+}
+
+/** A game card always opens a fresh room; old browser saves must never skip setup. */
+function ArcadeSession({ game }: { game: ArcadeGame }) {
+  const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [stage, setStage] = useState<Stage>("room");
   const [mode, setMode] = useState<PlayMode>("single");
   const [session, setSession] = useState<GameSession>(EMPTY_SESSION);
-  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(`qad-altahadi:v2:arcade:${game.slug}`);
-      if (saved) {
-        const parsed = JSON.parse(saved) as { stage?: Stage; mode?: PlayMode; session?: GameSession };
-        if (parsed.stage && parsed.stage !== "room" && parsed.session) {
-          setStage(parsed.stage); setMode(parsed.mode ?? "single"); setSession(parsed.session);
-        }
-      }
-    } catch { /* A malformed or unavailable local-storage entry must not block play. */ }
-    setRestored(true);
+    try { window.localStorage.removeItem(`qad-altahadi:v2:arcade:${game.slug}`); } catch { /* Storage is optional. */ }
   }, [game.slug]);
-
-  useEffect(() => {
-    if (!restored) return;
-    try {
-      if (stage === "room") window.localStorage.removeItem(`qad-altahadi:v2:arcade:${game.slug}`);
-      else window.localStorage.setItem(`qad-altahadi:v2:arcade:${game.slug}`, JSON.stringify({ stage, mode, session }));
-    } catch { /* Storage is an enhancement; the game continues without it. */ }
-  }, [game.slug, mode, restored, session, stage]);
 
   function startRoom(selectedMode: PlayMode, players: string[] = []) {
     setMode(selectedMode);
