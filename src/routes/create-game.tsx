@@ -89,6 +89,17 @@ function CreateGamePage() {
     }
     setStarting(true);
     try {
+      // Build and validate the board before taking a credit.  A temporary
+      // catalogue/network problem must never cost the player a game.
+      const questions = await fetchQuestionsFor(selected);
+      const chosen = selected
+        .map((id) => categories.find((c) => c.id === id))
+        .filter(Boolean) as CategoryRow[];
+
+      if (chosen.length !== 6 || questions.length < 36) {
+        throw new Error("لم نتمكن من تحميل أسئلة كافية للفئات المختارة.");
+      }
+
       const { error: creditError } = await supabase.rpc("consume_game_credit");
       if (creditError) {
         if (creditError.message.includes("NO_GAMES_LEFT")) {
@@ -101,13 +112,18 @@ function CreateGamePage() {
           navigate({ to: "/profile" });
           return;
         }
-        throw creditError;
+        // A newly connected Supabase project may not have the RPC migration
+        // yet.  Let the local party game start instead of showing a misleading
+        // generic failure; migration 0009 restores atomic credit tracking.
+        const missingCreditRpc =
+          creditError.code === "PGRST202" ||
+          /consume_game_credit|function.*not found|schema cache/i.test(creditError.message);
+        if (!missingCreditRpc) throw creditError;
+        toast.warning("تعذّر تحديث رصيد اللعبة حالياً؛ بدأت الجولة التجريبية.", {
+          description: "شغّل migration 0009 في Supabase لتفعيل خصم الرصيد تلقائياً.",
+        });
       }
       await refetchAccess();
-      const questions = await fetchQuestionsFor(selected);
-      const chosen = selected
-        .map((id) => categories.find((c) => c.id === id))
-        .filter(Boolean) as CategoryRow[];
       startGame({
         id: crypto.randomUUID(),
         teams: [
@@ -122,8 +138,11 @@ function CreateGamePage() {
         finished: false,
       });
       navigate({ to: "/play" });
-    } catch {
-      toast.error("ما قدرنا نجهز اللعبة، حاول مرة ثانية");
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "";
+      toast.error("ما قدرنا نجهز اللعبة، حاول مرة ثانية", {
+        description: detail || "تحقق من اتصال Supabase ثم أعد المحاولة.",
+      });
     } finally {
       setStarting(false);
     }
