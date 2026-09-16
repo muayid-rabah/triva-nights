@@ -25,7 +25,7 @@ type GameSession = {
   teams: [string, string];
   players: string[];
   huroof?: { size: 4 | 5 | 6; rounds: number; buzzer: boolean; seed: number };
-  auction?: { kind: AuctionKind; rounds: number; maxBid: number; slots: number; budget?: number };
+  auction?: { kind: AuctionKind; rounds: number; slots: number; budget?: number };
 };
 const EMPTY_SESSION: GameSession = { teams: ["فريق السرو", "فريق الكرمل"], players: [] };
 
@@ -158,13 +158,13 @@ function ParticipantFields({ names, onChange }: { names: string[]; onChange: (na
 function AuctionSetup({ mode, initialKind, onStart }: { mode: PlayMode; initialKind: AuctionKind; onStart: (session: GameSession) => void }) {
   const kind = initialKind;
   const [teamA, setTeamA] = useState(""); const [teamB, setTeamB] = useState("");
-  const [rounds, setRounds] = useState(3); const [maxBid, setMaxBid] = useState(15); const [budget, setBudget] = useState(200);
+  const [rounds, setRounds] = useState(3); const [budget, setBudget] = useState(200);
   return <section className="arcade-panel arcade-auction mx-auto max-w-3xl rounded-[2rem] p-6 sm:p-9">
     <span className="eyebrow">{kind === "billion" ? "مزاد المليار" : "مزاد الأسئلة"} · {mode === "online" ? "غرفة جوالات" : "جهاز واحد"}</span><h1 className="mt-3 text-4xl">{kind === "billion" ? "ابنوا فريقكم بالمزايدة" : "زايدوا وثبّتوا كلمتكم"}</h1>
     <div className="mt-7 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الأول" : "اسم الفريق الأول"}<Input value={teamA} onChange={(event) => setTeamA(event.target.value)} className="mt-2 h-11 bg-background/45" /></label><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الثاني" : "اسم الفريق الثاني"}<Input value={teamB} onChange={(event) => setTeamB(event.target.value)} className="mt-2 h-11 bg-background/45" /></label></div>
-    <div className="mt-6 grid gap-5 sm:grid-cols-3">{kind === "billion" ? <><SetupChoices title="ميزانية كل لاعب" values={[100, 200]} selected={budget} onChange={setBudget} /><p className="self-end text-sm leading-7 text-muted-foreground">سبع جولات ثابتة: حارس، دفاعان، وسطَان، ومهاجمان. في كل جولة بطاقة علنية وبطاقة خفية من نفس المركز.</p></> : <><SetupChoices title="عدد الجولات" values={[1, 3, 5]} selected={rounds} onChange={setRounds} /><SetupChoices title="أقصى مزايدة" values={[10, 15, 20]} selected={maxBid} onChange={setMaxBid} /></>}</div>
+    <div className="mt-6 grid gap-5 sm:grid-cols-3">{kind === "billion" ? <><SetupChoices title="ميزانية كل لاعب" values={[100, 200]} selected={budget} onChange={setBudget} /><p className="self-end text-sm leading-7 text-muted-foreground">سبع جولات ثابتة: حارس، دفاعان، وسطَان، ومهاجمان. في كل جولة بطاقة علنية وبطاقة خفية من نفس المركز.</p></> : <><SetupChoices title="عدد الجولات" values={[1, 3, 5]} selected={rounds} onChange={setRounds} /><p className="self-end text-sm leading-7 text-muted-foreground">ما في سقف للمزايدة: اكتبوا أي رقم أعلى من العرض. النقاط تُحسب من الإجابات الصحيحة: كل 10 إجابات = نقطة.</p></>}</div>
     <p className="mt-4 text-sm text-muted-foreground">سمّوا الطرفين أولاً؛ الأسماء تظهر على الملعب ولوحة النقاط طوال اللعبة.</p>
-    <Button className="mt-5" disabled={!teamA.trim() || !teamB.trim()} onClick={() => onStart({ teams: [teamA.trim(), teamB.trim()], players: [], auction: { kind, rounds, maxBid, slots: 7, budget } })}><Gavel /> افتحوا المزاد</Button>
+    <Button className="mt-5" disabled={!teamA.trim() || !teamB.trim()} onClick={() => onStart({ teams: [teamA.trim(), teamB.trim()], players: [], auction: { kind, rounds, slots: 7, budget } })}><Gavel /> افتحوا المزاد</Button>
   </section>;
 }
 
@@ -211,17 +211,17 @@ function SquadPitch({ name, budget, squad, slots, side }: { name: string; budget
 }
 
 function AuctionPlay({ session }: { session: GameSession }) {
-  const config = session.auction ?? { kind: "categories" as const, rounds: 3, maxBid: 15, slots: 19, budget: 200 };
+  const config = session.auction ?? { kind: "categories" as const, rounds: 3, slots: 19, budget: 200 };
   const [phase, setPhase] = useState<"pick" | "bid" | "challenge" | "result" | "twist">("pick"); const [questionIndex, setQuestionIndex] = useState(0); const [markedAnswers, setMarkedAnswers] = useState<string[]>([]);
   const [bid, setBid] = useState(config.kind === "billion" ? BILLION_AUCTION_PLAYERS[0].price : 3); const [bidder, setBidder] = useState<0 | 1>(0); const [winner, setWinner] = useState<0 | 1 | null>(null);
   const [customBid, setCustomBid] = useState(""); const [bidError, setBidError] = useState("");
-  const [correct, setCorrect] = useState(0); const [seconds, setSeconds] = useState(45); const [scores, setScores] = useState<[number, number]>([0, 0]); const [round, setRound] = useState(1);
+  const [correct, setCorrect] = useState(0); const [seconds, setSeconds] = useState(45); const [scores, setScores] = useState<[number, number]>([0, 0]); const [round, setRound] = useState(1); const [lastAward, setLastAward] = useState(0);
   const [playerIndex, setPlayerIndex] = useState(0); const [budgets, setBudgets] = useState<[number, number]>([config.budget ?? 200, config.budget ?? 200]); const [squads, setSquads] = useState<[BillionAuctionPlayer[], BillionAuctionPlayer[]]>([[], []]);
   const teams = session.teams; const featured = BILLION_AUCTION_PLAYERS[playerIndex]; const question = AUCTION_QUESTIONS[questionIndex % AUCTION_QUESTIONS.length];
   useEffect(() => { if (phase !== "challenge" || seconds <= 0) return; const id = window.setInterval(() => setSeconds((value) => value - 1), 1000); return () => window.clearInterval(id); }, [phase, seconds]);
   function beginBid() { setBid(question.suggestedBid); setCustomBid(""); setBidError(""); setBidder(0); setWinner(null); setPhase("bid"); }
   function placeQuestionBid(amount: number) {
-    if (!Number.isInteger(amount) || amount <= bid || amount > config.maxBid) { setBidError(`اكتب رقمًا أكبر من ${bid} وحتى ${config.maxBid}.`); return; }
+    if (!Number.isInteger(amount) || amount <= bid) { setBidError(`اكتب رقمًا صحيحًا أكبر من ${bid}.`); return; }
     setBid(amount); setCustomBid(""); setBidError(""); setBidder((current) => current === 0 ? 1 : 0);
   }
   function placeBillionBid(amount: number) {
@@ -239,7 +239,19 @@ function AuctionPlay({ session }: { session: GameSession }) {
     setPlayerIndex(nextIndex); setBid(BILLION_AUCTION_PLAYERS[nextIndex]?.price ?? 0); setBidder(bidder); setCustomBid(""); setBidError("");
   }
   function withdraw() { const winningTeam = bidder === 0 ? 1 : 0; setWinner(winningTeam); setSeconds(Math.max(30, bid * 5)); setMarkedAnswers([]); setCorrect(0); setPhase("challenge"); }
-  function finishChallenge() { if (winner === null) return; setScores((current) => { const next: [number, number] = [...current] as [number, number]; next[correct >= bid ? winner : winner === 0 ? 1 : 0] += bid; return next; }); setPhase("result"); }
+  function finishChallenge() {
+    if (winner === null) return;
+    const successful = correct >= bid;
+    // One score point for every ten validated answers: 10 = 1, 20 = 2, 40 = 4.
+    const award = Math.floor((successful ? correct : bid) / 10);
+    setLastAward(award);
+    setScores((current) => {
+      const next: [number, number] = [...current] as [number, number];
+      next[successful ? winner : winner === 0 ? 1 : 0] += award;
+      return next;
+    });
+    setPhase("result");
+  }
   function nextRound() { if (round >= config.rounds) return; const next = round + 1; setRound(next); setQuestionIndex((value) => value + 1); setPhase(next % 4 === 0 ? "twist" : "pick"); }
   if (config.kind === "billion") {
     const completed = squads[0].length >= config.slots && squads[1].length >= config.slots;
@@ -264,10 +276,10 @@ function AuctionPlay({ session }: { session: GameSession }) {
     </section>;
   }
   if (phase === "pick") return <section className="auction-play mx-auto max-w-4xl rounded-[2rem] p-8 text-center"><span className="eyebrow">مزاد الأسئلة · الجولة {round} من {config.rounds}</span><h1 className="mx-auto mt-6 max-w-3xl text-4xl leading-relaxed">{question.prompt}</h1><p className="mt-5 text-muted-foreground">لا تظهر الإجابات الآن؛ كل فريق يزايد فقط على العدد الذي يقدر يذكره.</p><Button className="mt-8" onClick={beginBid}><Gavel /> ابدأ المزايدة</Button></section>;
-  if (phase === "bid") return <section className="auction-play mx-auto max-w-3xl rounded-[2rem] p-8 text-center"><span className="eyebrow">{question.prompt}</span><Gavel className="auction-gavel mx-auto mt-5" /><h1 className="mt-4">الدور على {teams[bidder]}</h1><div className="auction-bid-number">{bid}<small>إجابة</small></div><p className="mt-3 text-muted-foreground">زايدوا بأي رقم أعلى من العرض الحالي، أو مرّروا للفريق الآخر.</p><div className="auction-bid-controls mt-7"><Button disabled={bid + 1 > config.maxBid} onClick={() => placeQuestionBid(bid + 1)}>+١</Button><Button disabled={bid + 2 > config.maxBid} onClick={() => placeQuestionBid(bid + 2)}>+٢</Button><Button disabled={bid + 5 > config.maxBid} onClick={() => placeQuestionBid(bid + 5)}>+٥</Button><Input inputMode="numeric" type="number" min={bid + 1} max={config.maxBid} value={customBid} onChange={(event) => setCustomBid(event.target.value)} placeholder="اكتب رقمك" aria-label="مزايدة مخصصة" /><Button variant="outline" onClick={() => placeQuestionBid(Number(customBid))}>زايد</Button><Button variant="outline" onClick={withdraw}>أمرّر</Button></div>{bidError && <p className="mt-3 text-sm text-red-200">{bidError}</p>}</section>;
+  if (phase === "bid") return <section className="auction-play mx-auto max-w-3xl rounded-[2rem] p-8 text-center"><span className="eyebrow">{question.prompt}</span><Gavel className="auction-gavel mx-auto mt-5" /><h1 className="mt-4">الدور على {teams[bidder]}</h1><div className="auction-bid-number">{bid}<small>إجابة</small></div><p className="mt-3 text-muted-foreground">زايدوا بأي رقم أعلى من العرض الحالي، أو مرّروا للفريق الآخر. كل 10 إجابات صحيحة = نقطة.</p><div className="auction-bid-controls mt-7"><Button onClick={() => placeQuestionBid(bid + 1)}>+١</Button><Button onClick={() => placeQuestionBid(bid + 2)}>+٢</Button><Button onClick={() => placeQuestionBid(bid + 5)}>+٥</Button><Input inputMode="numeric" type="number" min={bid + 1} value={customBid} onChange={(event) => setCustomBid(event.target.value)} placeholder="اكتب أي رقم" aria-label="مزايدة مخصصة" /><Button variant="outline" onClick={() => placeQuestionBid(Number(customBid))}>زايد</Button><Button variant="outline" onClick={withdraw}>أمرّر</Button></div>{bidError && <p className="mt-3 text-sm text-red-200">{bidError}</p>}</section>;
   if (phase === "challenge") return <section className="auction-play mx-auto max-w-5xl rounded-[2rem] p-8 text-center"><span className="eyebrow">{question.prompt}</span><h1 className="mt-4">{teams[winner ?? 0]} التزم بـ {bid} إجابات</h1><div className="auction-timer">{seconds}</div><p className="mt-2 font-bold text-gold">الإجابات الصحيحة: {correct} من {bid}</p><p className="mt-1 text-sm text-muted-foreground">مدير اللعبة يعلّم الإجابة التي يسمعها فقط.</p><div className="auction-answer-list mt-7">{question.answers.map((answer) => <button key={answer} className={markedAnswers.includes(answer) ? "is-marked" : ""} onClick={() => setMarkedAnswers((current) => { const next = current.includes(answer) ? current.filter((item) => item !== answer) : [...current, answer]; setCorrect(next.length); return next; })}><Check /> {answer}</button>)}</div><div className="mt-6 flex justify-center gap-3"><Button onClick={finishChallenge} disabled={correct < bid && seconds > 0}>ثبّت النتيجة</Button>{seconds === 0 && <Button variant="outline" onClick={finishChallenge}>انتهى الوقت</Button>}</div></section>;
   if (phase === "twist") { const twist = AUCTION_TWISTS[(round / 4 - 1) % AUCTION_TWISTS.length]; return <section className="auction-play auction-twist mx-auto max-w-xl rounded-[2rem] p-9 text-center"><Gavel className="auction-gavel mx-auto" /><span className="eyebrow">عقوبة مفاجئة</span><div className="twist-card mt-6"><small>اقلبوا الكرت</small><strong>{twist}</strong></div><Button className="mt-7" onClick={() => setPhase("pick")}>السؤال التالي</Button></section>; }
-  return <section className="auction-play mx-auto max-w-xl rounded-[2rem] p-8 text-center"><Trophy className="mx-auto h-10 w-10 text-gold" /><h1 className="mt-4">النتيجة</h1><p className="mt-3 text-lg">{correct >= bid ? `${teams[winner ?? 0]} وفّى بالمزايدة!` : `${teams[(winner ?? 0) === 0 ? 1 : 0]} أخذ الهدية.`}</p><div className="auction-scoreboard"><strong>{teams[0]} <b>{scores[0]}</b></strong><strong>{teams[1]} <b>{scores[1]}</b></strong></div>{round < config.rounds ? <Button className="mt-7" onClick={nextRound}>الجولة التالية</Button> : <Button asChild className="mt-7"><Link to="/games">لعبة جديدة</Link></Button>}</section>;
+  return <section className="auction-play mx-auto max-w-xl rounded-[2rem] p-8 text-center"><Trophy className="mx-auto h-10 w-10 text-gold" /><h1 className="mt-4">النتيجة</h1><p className="mt-3 text-lg">{correct >= bid ? `${teams[winner ?? 0]} وفّى بالمزايدة!` : `${teams[(winner ?? 0) === 0 ? 1 : 0]} أخذ الهدية.`}</p><p className="mt-2 font-bold text-gold">{lastAward} {lastAward === 1 ? "نقطة" : "نقاط"} لهذه الجولة · كل 10 إجابات = نقطة</p><div className="auction-scoreboard"><strong>{teams[0]} <b>{scores[0]}</b></strong><strong>{teams[1]} <b>{scores[1]}</b></strong></div>{round < config.rounds ? <Button className="mt-7" onClick={nextRound}>الجولة التالية</Button> : <Button asChild className="mt-7"><Link to="/games">لعبة جديدة</Link></Button>}</section>;
 }
 
 const HUROOF_QUESTIONS: Record<string, { question: string; answer: string }> = {
