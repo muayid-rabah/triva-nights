@@ -123,19 +123,18 @@ function PlayPage() {
                   <p className="mt-2 truncate text-xs font-bold">{cat.name}</p>
                 </div>
 
-                {byCategory(cat.id).map((q, index) => {
+                {byCategory(cat.id).map((q) => {
                   const used = game.used.includes(q.id);
-                  const questionNumber = index % 2 + 1;
                   return (
                     <button
                       key={q.id}
                       disabled={used || active !== null}
                       onClick={() => setActive(q)}
                       className={cn(
-                        "point-choice flex h-[4.35rem] w-full flex-col items-center justify-center rounded-xl font-display text-lg transition-all sm:h-[4.7rem]",
+                        `point-choice point-${q.points} flex h-[4.35rem] w-full items-center justify-center rounded-xl font-display text-lg transition-all sm:h-[4.7rem]`,
                         used
                           ? "cursor-not-allowed bg-surface text-muted-foreground/40"
-                          : "fire-gradient text-primary-foreground hover:scale-105",
+                          : "text-primary-foreground hover:scale-105",
                       )}
                     >
                       <span className={cn("block text-[10px] font-sans font-bold", q.points === 200 ? "text-emerald-100" : q.points === 400 ? "text-yellow-100" : "text-red-100")}>

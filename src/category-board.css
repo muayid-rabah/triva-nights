@@ -1,17 +1,24 @@
 .category-select-card{min-height:12.4rem;border-color:rgba(207,165,74,.48);background:linear-gradient(145deg,rgba(75,47,28,.96),rgba(31,18,13,.98));box-shadow:inset 0 1px rgba(255,247,219,.08),0 .5rem 1.2rem rgba(0,0,0,.2)}
 .category-select-card:before{content:"";position:absolute;inset:0;background:linear-gradient(125deg,rgba(255,255,255,.13),transparent 28%);pointer-events:none}.category-select-card:hover{border-color:#e3bc55;transform:translateY(-3px)}.category-select-card.is-selected{background:linear-gradient(145deg,rgba(103,46,31,1),rgba(51,22,17,1))}.category-select-card>div{border:1px solid rgba(222,183,85,.25)}
 
-/* Each category is a complete board: 200/400/600 on both sides. */
+/* A category is a complete six-card board. A point card deliberately shows
+   only its number: the amount is the decision, never a vague difficulty tag. */
 .taqha-board-grid{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:1rem}
-.taqha-board-card{display:grid;grid-template-columns:minmax(4.25rem,.8fr) minmax(7.5rem,1.25fr) minmax(4.25rem,.8fr);grid-template-rows:repeat(3,minmax(4.1rem,1fr));gap:.45rem;min-height:13.1rem;padding:.5rem;border:1px solid rgba(207,165,74,.42);border-radius:1.35rem;background:linear-gradient(145deg,rgba(68,40,25,.86),rgba(26,17,13,.96));box-shadow:inset 0 1px rgba(255,247,219,.1),0 .7rem 1.25rem rgba(0,0,0,.22)}
-.taqha-category-core{grid-column:2;grid-row:1 / span 3;display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center;padding:.55rem!important;background:linear-gradient(145deg,rgba(78,46,27,.9),rgba(32,18,14,.98))!important}
-.taqha-category-core>div{height:4.45rem!important;width:4.45rem!important;flex:none;border:1px solid rgba(225,188,94,.38)}
-.taqha-category-core p{margin-top:.45rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem;font-weight:900}
-.taqha-board-card>button{height:auto!important;min-height:4.1rem;border-radius:999px!important;padding:.25rem!important}
+.taqha-board-card{position:relative;display:grid;grid-template-columns:minmax(4.45rem,.82fr) minmax(8.25rem,1.42fr) minmax(4.45rem,.82fr);grid-template-rows:repeat(3,minmax(4.25rem,1fr));gap:.55rem;min-height:13.55rem;padding:.6rem;border:1px solid rgba(213,172,70,.55);border-radius:1.5rem;background:radial-gradient(circle at 50% 8%,rgba(218,174,73,.13),transparent 40%),linear-gradient(145deg,rgba(74,42,24,.96),rgba(26,15,12,.99));box-shadow:inset 0 1px rgba(255,247,219,.14),inset 0 -1px rgba(0,0,0,.42),0 .85rem 1.5rem rgba(0,0,0,.28);overflow:hidden}
+.taqha-board-card:before{content:"";position:absolute;inset:.35rem;border:1px solid rgba(235,199,106,.12);border-radius:1.2rem;pointer-events:none}
+.taqha-category-core{position:relative;z-index:1;grid-column:2;grid-row:1 / span 3;display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center;padding:.7rem!important;border-color:rgba(234,193,90,.55)!important;background:radial-gradient(circle at 50% 18%,rgba(241,199,91,.16),transparent 44%),linear-gradient(160deg,rgba(68,55,28,.95),rgba(38,21,15,.98))!important;box-shadow:inset 0 1px rgba(255,249,219,.16),0 .35rem .75rem rgba(0,0,0,.2)}
+.taqha-category-core>div{height:5.3rem!important;width:5.3rem!important;flex:none;border:1px solid rgba(235,199,106,.58);box-shadow:0 .4rem .8rem rgba(0,0,0,.28)}
+.taqha-category-core p{display:-webkit-box;margin-top:.7rem;max-width:100%;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;text-overflow:clip;white-space:normal;font-size:.9rem;font-weight:900;line-height:1.35}
+.taqha-board-card>button{position:relative;z-index:1;height:auto!important;min-height:4.25rem;border:1px solid rgba(245,215,130,.58);border-radius:1rem!important;padding:.25rem!important;box-shadow:inset 0 1px rgba(255,255,255,.22),inset 0 -3px rgba(0,0,0,.18),0 .25rem .4rem rgba(0,0,0,.22)}
 .taqha-board-card>button:nth-of-type(1),.taqha-board-card>button:nth-of-type(3),.taqha-board-card>button:nth-of-type(5){grid-column:1}
 .taqha-board-card>button:nth-of-type(2),.taqha-board-card>button:nth-of-type(4),.taqha-board-card>button:nth-of-type(6){grid-column:3}
 .taqha-board-card>button:nth-of-type(1),.taqha-board-card>button:nth-of-type(2){grid-row:1}.taqha-board-card>button:nth-of-type(3),.taqha-board-card>button:nth-of-type(4){grid-row:2}.taqha-board-card>button:nth-of-type(5),.taqha-board-card>button:nth-of-type(6){grid-row:3}
-.taqha-board-card>button>span{font-size:1.12rem;line-height:1}.taqha-board-card>button>span+span{margin-top:.22rem;font-size:.63rem;line-height:1.1}
-.taqha-board-card>button:disabled{filter:saturate(.15);opacity:.42}
+.taqha-board-card>button>span:first-child{display:none}
+.taqha-board-card>button>span{font-size:1.45rem;letter-spacing:.02em;line-height:1;text-shadow:0 2px 0 rgba(0,0,0,.28)}
+.taqha-board-card>.point-200{background:linear-gradient(145deg,#365d52,#18342f 68%,#10231f)}
+.taqha-board-card>.point-400{background:linear-gradient(145deg,#9d6820,#68400f 68%,#3f270d)}
+.taqha-board-card>.point-600{background:linear-gradient(145deg,#9a2638,#601421 68%,#3a0c14)}
+.taqha-board-card>button:not(:disabled):hover{border-color:#ffe19a;box-shadow:0 0 0 2px rgba(233,185,67,.18),0 .45rem .85rem rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.3)}
+.taqha-board-card>button:disabled{filter:saturate(.1);opacity:.36}
 @media (min-width:680px){.taqha-board-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:1.15rem}}
 @media (min-width:1180px){.taqha-board-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.taqha-board-card{min-height:14rem}}
