@@ -59,7 +59,7 @@ function PackagesPage() {
                     {p.games_count > 100 ? "ألعاب غير محدودة" : `${p.games_count} لعبة كاملة`}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-success" /> صالحة لألعاب قدّ التحدي، حروف، برا السالفة ومافيا
+                    <Check className="h-4 w-4 text-success" /> صالحة للألعاب الست: قدّ التحدي، حروف، برا السالفة، مافيا، المزاد ومزاد المليار
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-success" /> مكتبة أسئلة وفئات تتجدد باستمرار

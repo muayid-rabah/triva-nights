@@ -229,8 +229,23 @@ const shuffle = <T,>(items: T[]) => { const result = [...items]; for (let i = re
 // التكرار هنا مقصود في النقاط، وليس تكراراً للسؤال نفسه.
 const BOARD_POINTS = [200, 200, 400, 400, 600, 600] as const;
 export function drawLibraryQuestions(categoryIds: string[]): QuestionRow[] {
-  return categoryIds.flatMap((categoryId) => shuffle(pool.filter((question) => question.category_id === categoryId))
-    .slice(0, BOARD_POINTS.length)
-    .map((question, index) => ({ ...question, id: `${question.id}-${crypto.randomUUID()}`, points: BOARD_POINTS[index] })));
+  const storageKey = "qad-altahadi:question-history:v1";
+  const seenByCategory: Record<string, string[]> = (() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(window.localStorage.getItem(storageKey) ?? "{}"); } catch { return {}; }
+  })();
+  const drawn = categoryIds.flatMap((categoryId) => {
+    const candidates = pool.filter((question) => question.category_id === categoryId);
+    const seen = new Set(seenByCategory[categoryId] ?? []);
+    // Do not repeat this browser's questions until the category bank is used.
+    const eligible = candidates.filter((question) => !seen.has(question.id));
+    const selected = shuffle(eligible.length >= BOARD_POINTS.length ? eligible : candidates).slice(0, BOARD_POINTS.length);
+    seenByCategory[categoryId] = [...seen, ...selected.map((question) => question.id)].slice(-candidates.length);
+    return selected.map((question, index) => ({ ...question, id: `${question.id}-${crypto.randomUUID()}`, points: BOARD_POINTS[index] }));
+  });
+  if (typeof window !== "undefined") {
+    try { window.localStorage.setItem(storageKey, JSON.stringify(seenByCategory)); } catch { /* Storage is optional. */ }
+  }
+  return drawn;
 }
 export const libraryQuestions = pool;

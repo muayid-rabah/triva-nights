@@ -41,7 +41,7 @@ function ArcadePage() {
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(`taqha:arcade:${game.slug}`);
+      const saved = window.localStorage.getItem(`qad-altahadi:v2:arcade:${game.slug}`);
       if (saved) {
         const parsed = JSON.parse(saved) as { stage?: Stage; mode?: PlayMode; session?: GameSession };
         if (parsed.stage && parsed.stage !== "room" && parsed.session) {
@@ -55,8 +55,8 @@ function ArcadePage() {
   useEffect(() => {
     if (!restored) return;
     try {
-      if (stage === "room") window.localStorage.removeItem(`taqha:arcade:${game.slug}`);
-      else window.localStorage.setItem(`taqha:arcade:${game.slug}`, JSON.stringify({ stage, mode, session }));
+      if (stage === "room") window.localStorage.removeItem(`qad-altahadi:v2:arcade:${game.slug}`);
+      else window.localStorage.setItem(`qad-altahadi:v2:arcade:${game.slug}`, JSON.stringify({ stage, mode, session }));
     } catch { /* Storage is an enhancement; the game continues without it. */ }
   }, [game.slug, mode, restored, session, stage]);
 
@@ -157,13 +157,14 @@ function ParticipantFields({ names, onChange }: { names: string[]; onChange: (na
 
 function AuctionSetup({ mode, initialKind, onStart }: { mode: PlayMode; initialKind: AuctionKind; onStart: (session: GameSession) => void }) {
   const kind = initialKind;
-  const [teamA, setTeamA] = useState("فريق السرو"); const [teamB, setTeamB] = useState("فريق الكرمل");
+  const [teamA, setTeamA] = useState(""); const [teamB, setTeamB] = useState("");
   const [rounds, setRounds] = useState(3); const [maxBid, setMaxBid] = useState(15); const [budget, setBudget] = useState(200);
   return <section className="arcade-panel arcade-auction mx-auto max-w-3xl rounded-[2rem] p-6 sm:p-9">
     <span className="eyebrow">{kind === "billion" ? "مزاد المليار" : "مزاد الأسئلة"} · {mode === "online" ? "غرفة جوالات" : "جهاز واحد"}</span><h1 className="mt-3 text-4xl">{kind === "billion" ? "ابنوا فريقكم بالمزايدة" : "زايدوا وثبّتوا كلمتكم"}</h1>
     <div className="mt-7 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الأول" : "اسم الفريق الأول"}<Input value={teamA} onChange={(event) => setTeamA(event.target.value)} className="mt-2 h-11 bg-background/45" /></label><label className="text-sm font-bold">{kind === "billion" ? "اسم اللاعب الثاني" : "اسم الفريق الثاني"}<Input value={teamB} onChange={(event) => setTeamB(event.target.value)} className="mt-2 h-11 bg-background/45" /></label></div>
     <div className="mt-6 grid gap-5 sm:grid-cols-3">{kind === "billion" ? <><SetupChoices title="ميزانية كل لاعب" values={[100, 200]} selected={budget} onChange={setBudget} /><p className="self-end text-sm leading-7 text-muted-foreground">سبع جولات ثابتة: حارس، دفاعان، وسطَان، ومهاجمان. في كل جولة بطاقة علنية وبطاقة خفية من نفس المركز.</p></> : <><SetupChoices title="عدد الجولات" values={[1, 3, 5]} selected={rounds} onChange={setRounds} /><SetupChoices title="أقصى مزايدة" values={[10, 15, 20]} selected={maxBid} onChange={setMaxBid} /></>}</div>
-    <Button className="mt-8" onClick={() => onStart({ teams: [teamA.trim() || "فريق السرو", teamB.trim() || "فريق الكرمل"], players: [], auction: { kind, rounds, maxBid, slots: 7, budget } })}><Gavel /> افتحوا المزاد</Button>
+    <p className="mt-4 text-sm text-muted-foreground">سمّوا الطرفين أولاً؛ الأسماء تظهر على الملعب ولوحة النقاط طوال اللعبة.</p>
+    <Button className="mt-5" disabled={!teamA.trim() || !teamB.trim()} onClick={() => onStart({ teams: [teamA.trim(), teamB.trim()], players: [], auction: { kind, rounds, maxBid, slots: 7, budget } })}><Gavel /> افتحوا المزاد</Button>
   </section>;
 }
 

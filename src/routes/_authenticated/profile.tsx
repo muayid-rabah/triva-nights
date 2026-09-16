@@ -106,6 +106,19 @@ function ProfilePage() {
       });
       if (claimError) {
         const rpcMissing = claimError.message.includes("Could not find the function") || claimError.code === "PGRST202";
+        if (rpcMissing) {
+          // Compatibility for an older project that does not have the RPC yet.
+          const { error: fallbackError } = await supabase
+            .from("profiles")
+            .update({ country_code: form.country_code, phone: normalizePhone(form.country_code, form.phone) })
+            .eq("id", userId);
+          if (!fallbackError) {
+            toast.info("انحفظ الرقم بالتوافق المؤقت", { description: "شغّل 0007_restore_phone_rpc.sql لاحقاً لتفعيل حماية الرقم وحدّ الحسابات." });
+          } else {
+            toast.error("ما قدرنا نثبّت رقم التلفون", { description: "قاعدة البيانات لا تحتوي دالة التثبيت ولا تسمح بالحفظ المباشر. شغّل 0007_restore_phone_rpc.sql في مشروع Supabase المتصل بالموقع ثم أعد تشغيل السيرفر." });
+            return;
+          }
+        } else {
         toast.error("ما قدرنا نثبت رقم التلفون", {
           description: rpcMissing
             ? "دالة تثبيت الهاتف غير مفعّلة في Supabase. شغّل 0006_repair_existing_supabase.sql ثم نفّذ: NOTIFY pgrst, 'reload schema';"
@@ -114,6 +127,7 @@ function ProfilePage() {
               : claimError.message,
         });
         return;
+        }
       }
     }
     const { error } = await supabase
