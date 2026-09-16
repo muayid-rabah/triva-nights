@@ -283,8 +283,40 @@ function AuctionPlay({ session }: { session: GameSession }) {
   return <section className="auction-play mx-auto max-w-xl rounded-[2rem] p-8 text-center"><Trophy className="mx-auto h-10 w-10 text-gold" /><h1 className="mt-4">النتيجة</h1><p className="mt-3 text-lg">{correct >= bid ? `${teams[winner ?? 0]} وفّى بالمزايدة!` : `${teams[(winner ?? 0) === 0 ? 1 : 0]} أخذ الهدية.`}</p><p className="mt-2 font-bold text-gold">{lastAward} {lastAward === 1 ? "نقطة" : "نقاط"} لهذه الجولة · كل 10 إجابات = نقطة</p><div className="auction-scoreboard"><strong>{teams[0]} <b>{scores[0]}</b></strong><strong>{teams[1]} <b>{scores[1]}</b></strong></div>{round < config.rounds ? <Button className="mt-7" onClick={nextRound}>الجولة التالية</Button> : <Button asChild className="mt-7"><Link to="/games">لعبة جديدة</Link></Button>}</section>;
 }
 
+/**
+ * Every prompt is deliberately paired with an answer that starts with the
+ * letter printed on its hex.  The presenter sees the answer only after
+ * opening it, so this is both a rule check and a useful judging reference.
+ */
 const HUROOF_QUESTIONS: Record<string, { question: string; answer: string }> = {
-  "ا": { question: "ما عاصمة الأردن؟", answer: "عمّان" }, "ب": { question: "ما اسم المدينة الوردية المنحوتة بالصخر؟", answer: "البتراء" }, "ت": { question: "ما القارة التي تقع فيها الأردن؟", answer: "آسيا" }, "ث": { question: "كم عدد أشهر السنة؟", answer: "اثنا عشر" }, "ج": { question: "ما الحيوان المعروف بسفينة الصحراء؟", answer: "الجمل" }, "ح": { question: "ما العضو الذي يضخ الدم؟", answer: "القلب" }, "خ": { question: "ما لون أعلى علم الأردن؟", answer: "الأسود" }, "د": { question: "ما العملة الرسمية في الأردن؟", answer: "الدينار الأردني" }, "ر": { question: "ما النهر الشهير الذي يمر بالأردن؟", answer: "نهر الأردن" }, "س": { question: "ما الأكلة الفلسطينية الشهيرة بالبصل والسماق؟", answer: "المسخن" }, "ش": { question: "ما اسم الكوكب الأحمر؟", answer: "المريخ" }, "ص": { question: "ما عاصمة فلسطين؟", answer: "القدس" }, "ض": { question: "ما ضد كلمة طويل؟", answer: "قصير" }, "ط": { question: "كم ضلعاً للمربع؟", answer: "أربعة" }, "ع": { question: "ما أكبر حيوان بري؟", answer: "الفيل" }, "ف": { question: "ما البحر الذي يحد الأردن غرباً؟", answer: "البحر الميت" }, "ق": { question: "ما القلعة الموجودة في عمّان؟", answer: "قلعة عمّان" }, "ك": { question: "ما لون ورقة الشجر؟", answer: "أخضر" }, "ل": { question: "ما لغة القرآن الكريم؟", answer: "العربية" }, "م": { question: "ما عاصمة المغرب؟", answer: "الرباط" },
+  "ا": { question: "ما اسم البلد الذي عاصمته عمّان؟", answer: "الأردن" },
+  "ب": { question: "ما اسم المدينة الوردية المنحوتة في الصخر جنوب الأردن؟", answer: "البتراء" },
+  "ت": { question: "ما اسم الجهاز المستخدم لقياس درجة الحرارة؟", answer: "ترمومتر" },
+  "ث": { question: "ما اسم اللباس الطويل الشائع للرجال في دول الخليج؟", answer: "ثوب" },
+  "ج": { question: "ما الحيوان المعروف بلقب سفينة الصحراء؟", answer: "جمل" },
+  "ح": { question: "ما الحيوان المخطط الشبيه بالحصان؟", answer: "حمار وحشي" },
+  "خ": { question: "ما المادة الطبيعية التي يُصنع منها كثير من الأثاث؟", answer: "خشب" },
+  "د": { question: "ما العملة الرسمية في الأردن؟", answer: "دينار" },
+  "ذ": { question: "ما الحيوان المفترس الذي يعيش في قطعان ويعوي؟", answer: "ذئب" },
+  "ر": { question: "ما عاصمة إيطاليا؟", answer: "روما" },
+  "ز": { question: "ما الحيوان المعروف برقبة طويلة جداً؟", answer: "زرافة" },
+  "س": { question: "ما الأكلة اليابانية الشهيرة المصنوعة من الأرز والسمك؟", answer: "سوشي" },
+  "ش": { question: "ما النجم الذي تدور حوله الأرض؟", answer: "شمس" },
+  "ص": { question: "ما عاصمة اليمن؟", answer: "صنعاء" },
+  "ض": { question: "ما الحيوان الذي يعيش قرب البرك ويقفز؟", answer: "ضفدع" },
+  "ط": { question: "ما اسم الخبز الشامي الذي يُخبز في فرن حجري؟", answer: "طابون" },
+  "ظ": { question: "ما وصف الشيء الذي يمكن رؤيته بوضوح؟", answer: "ظاهر" },
+  "ع": { question: "ما عاصمة الأردن؟", answer: "عمّان" },
+  "غ": { question: "ما الحيوان الرشيق صاحب القرون الصغيرة؟", answer: "غزال" },
+  "ف": { question: "ما أكبر حيوان بري في العالم؟", answer: "فيل" },
+  "ق": { question: "ما اسم المعلم التاريخي الموجود على جبل القلعة في عمّان؟", answer: "قلعة عمّان" },
+  "ك": { question: "ما الأداة المستديرة التي تُلعب بها مباراة كرة القدم؟", answer: "كرة" },
+  "ل": { question: "ما الفاكهة الصفراء الحامضة؟", answer: "ليمون" },
+  "م": { question: "ما المادة الشفافة التي نشربها كل يوم؟", answer: "ماء" },
+  "ن": { question: "ما النهر الشهير الذي يمر في مصر؟", answer: "نيل" },
+  "ه": { question: "ما البناء الأثري الشهير في الجيزة؟", answer: "هرم" },
+  "و": { question: "ما اسم الزهرة التي ترمز للحب؟", answer: "وردة" },
+  "ي": { question: "ما الدولة التي تقع فيها مدينة صنعاء؟", answer: "اليمن" },
 };
 type HuroofSnapshot = { owners: HuroofOwner[]; turn: "A" | "B" };
 function HuroofPlay({ session }: { session: GameSession }) {
