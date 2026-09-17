@@ -164,6 +164,7 @@ function PlayPage() {
           onHelp={(key) => useHelp(game.turn, key)}
           helps={game.teams[game.turn].helps}
           teams={[game.teams[0].name, game.teams[1].name]}
+          currentTeam={game.teams[game.turn].name}
         />
       )}
     </div>
@@ -243,6 +244,7 @@ function QuestionModal({
   onHelp,
   helps,
   teams,
+  currentTeam,
 }: {
   question: QuestionRow;
   category?: CategoryRow;
@@ -251,6 +253,7 @@ function QuestionModal({
   onHelp: (key: HelpKey) => void;
   helps: Record<HelpKey, boolean>;
   teams: [string, string];
+  currentTeam: string;
 }) {
   const isSilentPrompt = category?.slug === "no-words";
   const [left, setLeft] = useState(TOTAL_TIME);
@@ -322,7 +325,7 @@ function QuestionModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex animate-pop-in flex-col bg-background/98">
+    <div className="fixed inset-0 z-50 flex min-h-0 animate-pop-in flex-col overflow-hidden bg-background/98">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
@@ -352,13 +355,14 @@ function QuestionModal({
         </div>
       </div>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center px-4 text-center">
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-4 text-center">
         <article className="question-glow w-full max-w-5xl rounded-[2rem] border border-primary/25 px-6 py-9 shadow-2xl sm:px-12 sm:py-14">
         <div className="flex flex-wrap items-center justify-center gap-2">
         <span className="rounded-full bg-surface-2 px-4 py-1 text-sm font-bold text-gold">
           {question.points} نقطة
         </span>
         <span className="rounded-full border border-border bg-card/70 px-4 py-1 text-sm font-bold">{category?.emoji ?? "❓"} {category?.name ?? "الفئة الحالية"}</span>
+        <span className="rounded-full border border-primary/50 bg-primary/15 px-4 py-1 text-sm font-bold text-primary">دور فريق: {currentTeam}</span>
         </div>
         {isSilentPrompt && !promptVisible ? (
           <div className="mx-auto mt-8 max-w-xl rounded-3xl border border-gold/40 bg-surface-2 px-6 py-10">
@@ -417,7 +421,7 @@ function QuestionModal({
         </article>
       </div>
 
-      <div className="relative border-t border-border bg-surface/80 px-4 py-4">
+      <div className="relative shrink-0 border-t border-border bg-surface/80 px-4 py-4">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-3">
           {HELPS.map((h) => {
             const Icon = HELP_ICONS[h.key];
@@ -441,17 +445,23 @@ function QuestionModal({
         </div>
 
         <div className="mx-auto mt-4 max-w-2xl">
+          <p className="mb-3 text-center text-sm font-bold text-muted-foreground">من الفريق الذي أجاب صح؟</p>
           <div className="grid grid-cols-2 gap-3">
-          <Button className="h-16 bg-success text-base text-primary-foreground hover:bg-success/90" onClick={() => resolve(0)}>
+          <Button disabled={resolution !== null} className="h-16 bg-success text-base text-primary-foreground hover:bg-success/90" onClick={() => resolve(0)}>
             <Check className="ms-1 h-4 w-4" /> صح لـ {teams[0]}
           </Button>
-          <Button className="h-16 bg-success text-base text-primary-foreground hover:bg-success/90" onClick={() => resolve(1)}>
+          <Button disabled={resolution !== null} className="h-16 bg-success text-base text-primary-foreground hover:bg-success/90" onClick={() => resolve(1)}>
             <Check className="ms-1 h-4 w-4" /> صح لـ {teams[1]}
           </Button>
           </div>
-          <Button variant="destructive" size="sm" className="mx-auto mt-3 flex" onClick={() => resolve(null)}>
+          <Button disabled={resolution !== null} variant="destructive" size="sm" className="mx-auto mt-3 flex" onClick={() => resolve(null)}>
             <X className="ms-1 h-4 w-4" /> ما أحد جاوب
           </Button>
+          {resolution && (
+            <p className="mt-3 rounded-xl border border-success/40 bg-success/10 px-4 py-2 text-center text-sm font-bold text-success">
+              {resolution.team ? `تُحسب ${resolution.points} نقطة لفريق ${resolution.team}` : "لا تُحتسب نقاط لهذه الجولة"}
+            </p>
+          )}
         </div>
       </div>
 
