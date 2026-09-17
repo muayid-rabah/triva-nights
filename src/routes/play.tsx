@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   Eye,
+  EyeOff,
   Hand,
   HandMetal,
   Phone,
@@ -251,8 +252,10 @@ function QuestionModal({
   helps: Record<HelpKey, boolean>;
   teams: [string, string];
 }) {
+  const isSilentPrompt = category?.slug === "no-words";
   const [left, setLeft] = useState(TOTAL_TIME);
-  const [paused, setPaused] = useState(false);
+  const [paused, setPaused] = useState(isSilentPrompt);
+  const [promptVisible, setPromptVisible] = useState(!isSilentPrompt);
   const [revealed, setRevealed] = useState(false);
   const [hidden, setHidden] = useState<string[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
@@ -357,6 +360,16 @@ function QuestionModal({
         </span>
         <span className="rounded-full border border-border bg-card/70 px-4 py-1 text-sm font-bold">{category?.emoji ?? "❓"} {category?.name ?? "الفئة الحالية"}</span>
         </div>
+        {isSilentPrompt && !promptVisible ? (
+          <div className="mx-auto mt-8 max-w-xl rounded-3xl border border-gold/40 bg-surface-2 px-6 py-10">
+            <EyeOff className="mx-auto h-11 w-11 text-gold" />
+            <h2 className="mt-4 text-2xl font-bold sm:text-3xl">سلّم الجهاز للشخص صاحب الدور</h2>
+            <p className="mt-3 text-muted-foreground">الكلمة مخفية حتى لا يراها باقي الفريق. بعد كشفها يبدأ المؤقت.</p>
+            <Button size="lg" className="mt-6" onClick={() => { setPromptVisible(true); setPaused(false); }}>
+              <Eye className="ms-2 h-5 w-5" /> اكشف كلمة التمثيل
+            </Button>
+          </div>
+        ) : <>
         <h2 className="mt-7 text-2xl leading-relaxed sm:text-4xl">{question.text}</h2>
 
         <QuestionMedia question={question} />
@@ -379,6 +392,8 @@ function QuestionModal({
               </button>
             ))}
           </div>
+        ) : isSilentPrompt ? (
+          <p className="mt-7 text-sm font-bold text-gold">مثّلها من دون كلام، والحكم يقرر إن كانت الإجابة صحيحة.</p>
         ) : (
           <div className="mt-8">
             {revealed ? (
@@ -398,6 +413,7 @@ function QuestionModal({
             <Eye className="ms-2 h-4 w-4" /> إظهار الجواب الصحيح
           </Button>
         )}
+        </>}
         </article>
       </div>
 

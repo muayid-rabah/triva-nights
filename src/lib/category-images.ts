@@ -14,6 +14,7 @@ export function categoryImage(key: string | null | undefined): string | null {
   if (!key) return null;
   if (CATEGORY_IMAGES[key]) return CATEGORY_IMAGES[key];
   const slug = key.toLowerCase();
+  if (/(kits-and-crests|national-kit|country-shirt)/.test(slug)) return "/assets/category-national-kits-v1.png";
   if (/(football|cup|league|player|kit|stadium|sport|nba|ufc|tennis|formula)/.test(slug)) return "/assets/category-football-quiz-v1.png";
   if (/(series|cinema|film|screen|animation|anime|gaming|game|disney|pixar)/.test(slug)) return "/assets/category-screen-quiz-v1.png";
   if (/(islam|prophet|religion|quran|arabic-literature)/.test(slug)) return "/assets/category-islam-quiz-v1.png";
