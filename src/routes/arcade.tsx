@@ -307,6 +307,33 @@ const HUROOF_QUESTIONS: Record<string, { question: string; answer: string }> = {
   "ي": { question: "ما الدولة التي تقع فيها مدينة صنعاء؟", answer: "اليمن" },
 };
 type HuroofSnapshot = { owners: HuroofOwner[]; turn: "A" | "B" };
+
+const HUROOF_SVG_LAYOUTS = {
+  4: { width: 398, height: 336 },
+  5: { width: 487, height: 413 },
+} as const;
+
+function SuppliedHuroofGrid({ size, letters, owners, selected, winningPath, disabled, onChoose }: { size: 4 | 5; letters: string[]; owners: HuroofOwner[]; selected: number | null; winningPath: number[]; disabled: boolean; onChoose: (index: number) => void }) {
+  const layout = HUROOF_SVG_LAYOUTS[size];
+  const cellWidth = 88;
+  const cellHeight = 102;
+  const centerFor = (row: number, column: number) => ({ x: 44 + (row % 2 ? 44 : 0) + column * 88.5, y: 53 + row * 77 });
+  const hexPoints = (x: number, y: number) => `${x},${y - cellHeight / 2} ${x + cellWidth / 2},${y - 25} ${x + cellWidth / 2},${y + 24} ${x},${y + cellHeight / 2} ${x - cellWidth / 2},${y + 24} ${x - cellWidth / 2},${y - 25}`;
+  return <svg className="huroof-supplied-grid" viewBox={`0 0 ${layout.width} ${layout.height}`} role="grid" aria-label={`شبكة حروف ${size} في ${size}`}>
+    {letters.map((_, index) => { const { x, y } = centerFor(Math.floor(index / size), index % size); const owner = owners[index]; return <polygon key={`base-${index}`} className={`huroof-svg-cell-bg ${owner ? `team-${owner}` : ""} ${selected === index ? "is-selected" : ""}`} points={hexPoints(x, y)} />; })}
+    <image className="huroof-svg-art" href={`/assets/huroof/mask-group-${size}.svg`} width={layout.width} height={layout.height} />
+    {letters.map((letter, index) => {
+      const { x, y } = centerFor(Math.floor(index / size), index % size);
+      const owner = owners[index];
+      const locked = Boolean(owner) || disabled;
+      return <g key={`${letter}-${index}`} className={`huroof-svg-cell ${owner ? `team-${owner}` : ""} ${selected === index ? "is-selected" : ""} ${winningPath.includes(index) ? "is-winning" : ""}`} role="gridcell" aria-label={`حرف ${letter}`} aria-disabled={locked} tabIndex={locked ? -1 : 0} onClick={() => !locked && onChoose(index)} onKeyDown={(event) => { if (!locked && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onChoose(index); } }}>
+        <polygon className="huroof-svg-hit" points={hexPoints(x, y)} />
+        <text className="huroof-svg-letter" x={x} y={y + 2} textAnchor="middle" dominantBaseline="middle">{letter}</text>
+      </g>;
+    })}
+  </svg>;
+}
+
 function HuroofPlay({ session }: { session: GameSession }) {
   const config = session.huroof ?? { size: 5 as const, rounds: 1, buzzer: false, seed: 0.42 };
   const [letters] = useState(() => createLetterBoard(config.size, config.seed));
@@ -360,7 +387,7 @@ function HuroofPlay({ session }: { session: GameSession }) {
   return <section className="huroof-stage mx-auto w-full max-w-none">
     <header className="huroof-topbar"><ScoreHex team="A" name={teamA} score="0" active={turn === "A"} /><div><span>حروف</span><strong>الجولة 1 من {config.rounds}</strong><small>{config.buzzer ? "وضع الجرس" : "وضع المقدم"}</small></div><ScoreHex team="B" name={teamB} score="0" active={turn === "B"} /></header>
     <div className="huroof-board-shell"><i className="huroof-edge huroof-edge-top" aria-label="هدف الأخضر: أعلى اللوحة" /><i className="huroof-edge huroof-edge-bottom" aria-label="هدف الأخضر: أسفل اللوحة" /><i className="huroof-edge huroof-edge-right" aria-label="هدف العنابي: يمين اللوحة" /><i className="huroof-edge huroof-edge-left" aria-label="هدف العنابي: يسار اللوحة" />
-      <div className={`huroof-new-grid huroof-grid-${config.size}`} style={{ "--huroof-size": config.size, "--huroof-grid-mask": `url("/assets/huroof/mask-group-${config.size}.svg")` } as React.CSSProperties}><i className="huroof-supplied-mask" aria-hidden="true" />{Array.from({ length: config.size }, (_, row) => <div key={row} className={`huroof-new-row ${row % 2 ? "is-offset" : ""}`}>{letters.slice(row * config.size, row * config.size + config.size).map((letter, column) => { const index = row * config.size + column; return <button key={`${letter}-${index}`} aria-label={`حرف ${letter}`} className={`huroof-new-hex ${owners[index] ? `team-${owners[index]}` : ""} ${selected === index ? "is-selected" : ""} ${winningPath.includes(index) ? "is-winning" : ""}`} disabled={Boolean(owners[index]) || Boolean(winner)} onClick={() => choose(index)}><span>{letter}</span></button>; })}</div>)}</div>
+      {config.size === 4 || config.size === 5 ? <SuppliedHuroofGrid size={config.size} letters={letters} owners={owners} selected={selected} winningPath={winningPath} disabled={Boolean(winner)} onChoose={choose} /> : <div className={`huroof-new-grid huroof-grid-${config.size}`} style={{ "--huroof-size": config.size, "--huroof-grid-mask": `url("/assets/huroof/mask-group-${config.size}.svg")` } as React.CSSProperties}><i className="huroof-supplied-mask" aria-hidden="true" />{Array.from({ length: config.size }, (_, row) => <div key={row} className={`huroof-new-row ${row % 2 ? "is-offset" : ""}`}>{letters.slice(row * config.size, row * config.size + config.size).map((letter, column) => { const index = row * config.size + column; return <button key={`${letter}-${index}`} aria-label={`حرف ${letter}`} className={`huroof-new-hex ${owners[index] ? `team-${owners[index]}` : ""} ${selected === index ? "is-selected" : ""} ${winningPath.includes(index) ? "is-winning" : ""}`} disabled={Boolean(owners[index]) || Boolean(winner)} onClick={() => choose(index)}><span>{letter}</span></button>; })}</div>)}</div>}
     </div>
     {winner ? <div className="huroof-win-panel"><Crown /><h1>فريق {winner === "A" ? teamA : teamB} ربط الطرفين!</h1><p>وصلتوها — انتهت الجولة بمسار متصل.</p><div><Button onClick={() => { setOwners(Array(config.size * config.size).fill(null)); setWinningPath([]); setHistory([]); setTurn("A"); }}>إعادة الجولة</Button><Button variant="outline" asChild><Link to="/games">كل الألعاب</Link></Button></div></div> : selected === null ? <footer className="huroof-actionbar"><span>الدور على <b>{turn === "A" ? teamA : teamB}</b> — اختروا خلية لبدء السؤال</span><Button variant="outline" disabled={!history.length} onClick={undo}>تراجع عن آخر حركة</Button></footer> : <section className="huroof-question-stage"><span>حرف: {letters[selected]}</span><h1>{question.question}</h1>{answerOpen && <p className="huroof-answer">الإجابة: <b>{question.answer}</b></p>}<div className="huroof-question-actions"><Button variant="outline" onClick={() => setAnswerOpen(true)}>إظهار الإجابة</Button><Button onClick={() => claim("A")}>✓ الأخضر صح <small>A</small></Button><Button className="bg-[#7e1f35] hover:bg-[#6d192e]" onClick={() => claim("B")}>✓ العنابي صح <small>L</small></Button><Button variant="outline" onClick={miss}>لا أحد أجاب</Button></div><p>اختصارات: A للأخضر · L للعنابي · Space للإجابة</p></section>}</section>;
 }
