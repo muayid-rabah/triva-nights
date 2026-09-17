@@ -12,14 +12,17 @@
 .player-photo-question img{object-fit:cover!important;object-position:center 13%;transform:scale(1.7);transform-origin:top center}
 .player-photo-question::after{content:"";position:absolute;right:0;bottom:0;left:0;height:36%;background:linear-gradient(transparent,#17120e 32%)}
 
-/* Match the colourful reference board: gold centre, coral diagonals, white
-   hexagons and the unmistakable purple outline. */
-.huroof-board-shell{min-height:min(66vw,620px)!important;border:0!important;border-radius:.45rem!important;background:linear-gradient(45deg,#ff7c7e 0 24%,transparent 24%) bottom left/50% 100% no-repeat,linear-gradient(-45deg,#ff7c7e 0 24%,transparent 24%) bottom right/50% 100% no-repeat,linear-gradient(135deg,#ff7c7e 0 24%,transparent 24%) top left/50% 100% no-repeat,linear-gradient(-135deg,#ff7c7e 0 24%,transparent 24%) top right/50% 100% no-repeat,#ffd88c!important;box-shadow:none!important}
+/* The supplied board masks keep the exact line-work for sizes 4, 5 and 6.
+   The fabric background is inspired by Jordanian/Palestinian tatreez, olive
+   trees and the warm colours of a family gathering. */
+.huroof-board-shell{min-height:min(66vw,620px)!important;border:0!important;border-radius:1.15rem!important;background:linear-gradient(45deg,rgba(180,48,61,.88) 0 20%,transparent 20%) bottom left/50% 100% no-repeat,linear-gradient(-45deg,rgba(180,48,61,.88) 0 20%,transparent 20%) bottom right/50% 100% no-repeat,linear-gradient(135deg,rgba(44,105,66,.88) 0 20%,transparent 20%) top left/50% 100% no-repeat,linear-gradient(-135deg,rgba(44,105,66,.88) 0 20%,transparent 20%) top right/50% 100% no-repeat,radial-gradient(circle at 50% 50%,rgba(255,239,191,.98),rgba(239,194,104,.98))!important;box-shadow:inset 0 0 0 1px rgba(255,241,194,.5),0 1.2rem 3rem rgba(0,0,0,.28)!important}
+.huroof-board-shell::before{content:"";position:absolute;inset:0;opacity:.12;background:url("./assets/tatreez-pattern.svg") center/132px 66px;mix-blend-mode:multiply;pointer-events:none}
 .huroof-edge{display:none!important}
-.huroof-new-grid{--hex-size:clamp(3.2rem,calc(48vw / var(--huroof-size)),7.45rem)!important;filter:drop-shadow(0 .45rem .38rem rgba(83,44,114,.18))}
+.huroof-new-grid{--hex-size:clamp(3.2rem,calc(48vw / var(--huroof-size)),7.45rem)!important;isolation:isolate;filter:drop-shadow(0 .45rem .38rem rgba(83,44,114,.18))}
+.huroof-grid-mask{position:absolute;z-index:3;inset:0;width:100%;height:100%;pointer-events:none;filter:invert(28%) sepia(29%) saturate(2593%) hue-rotate(247deg) brightness(92%) contrast(91%)}
 .huroof-new-row{margin-top:calc(var(--hex-size) * -.285)!important}
 .huroof-new-row.is-offset{transform:translateX(calc(var(--hex-size) * .375))!important}
-.huroof-new-hex{margin-inline:calc(var(--hex-size) * -.125)!important;background:#70409d!important;color:#70409d!important;box-shadow:none!important;filter:drop-shadow(0 .16rem 0 #5d3188)}
+.huroof-new-hex{z-index:2;margin-inline:calc(var(--hex-size) * -.125)!important;background:#70409d!important;color:#70409d!important;box-shadow:none!important;filter:drop-shadow(0 .16rem 0 #5d3188)}
 .huroof-new-hex::after{inset:4px!important;border:0!important;background:#fffdf7!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.98),inset 0 -3px 0 rgba(112,64,157,.10)!important}
 .huroof-new-hex span{z-index:2!important;font-family:var(--font-display);font-weight:950!important;text-shadow:none!important}
 .huroof-new-hex.team-A{background:#17673a!important;color:#fff!important;filter:drop-shadow(0 .16rem 0 #11562f)}
