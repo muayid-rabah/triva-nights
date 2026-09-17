@@ -44,7 +44,7 @@ export async function fetchQuestionsFor(categoryIds: string[]): Promise<Question
   if (!remoteSelected.length) return localQuestions;
   const { data, error } = await supabase
     .from("questions")
-    .select("id, category_id, points, kind, text, choices, answer, image_url, audio_text, video_url")
+    .select("id, category_id, points, kind, text, choices, answer, image_url, audio_url, audio_text, video_url")
     .in("category_id", remoteSelected);
   if (!error && data?.length) return [...localQuestions, ...(data as QuestionRow[])];
 

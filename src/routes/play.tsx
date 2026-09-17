@@ -173,7 +173,9 @@ function PlayPage() {
 
 function QuestionMedia({ question }: { question: QuestionRow }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [audioFailed, setAudioFailed] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isPlayerPhoto = question.category_id === "players-by-photo";
 
   function playStartTone() {
@@ -192,7 +194,22 @@ function QuestionMedia({ question }: { question: QuestionRow }) {
     } catch { /* The spoken clue still works when Web Audio is unavailable. */ }
   }
 
-  function playAudioClue() {
+  async function playAudioClue() {
+    if (question.audio_url && !audioFailed) {
+      const audio = audioRef.current;
+      if (!audio) return;
+      playStartTone();
+      audio.currentTime = 0;
+      setSpeaking(true);
+      try {
+        await audio.play();
+      } catch {
+        setSpeaking(false);
+        toast.error("تعذّر تشغيل الملف الصوتي. تأكدوا من رفع صوت الجهاز ثم أعيدوا المحاولة.");
+      }
+      return;
+    }
+
     if (!question.audio_text || typeof window === "undefined" || !("speechSynthesis" in window)) {
       toast.error("المتصفح لا يدعم تشغيل هذا المقطع الصوتي.");
       return;
@@ -226,11 +243,23 @@ function QuestionMedia({ question }: { question: QuestionRow }) {
         <div className="aspect-video"><iframe className="h-full w-full" src={question.video_url} title="مقطع سؤال" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
       </figure>
     )}
-    {question.audio_text && (
+    {(question.audio_url || question.audio_text) && (
       <div className="mx-auto mt-6 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-gold/40 bg-surface p-4">
         <span className="text-sm font-bold text-gold">مقطع صوتي</span>
+        {question.audio_url && (
+          <audio
+            ref={audioRef}
+            preload="metadata"
+            src={question.audio_url}
+            onEnded={() => setSpeaking(false)}
+            onError={() => {
+              setAudioFailed(true);
+              setSpeaking(false);
+            }}
+          />
+        )}
         <Button type="button" variant="secondary" onClick={playAudioClue}><Volume2 className={cn("ms-2 h-5 w-5", speaking && "animate-pulse")} /> {speaking ? "جارٍ التشغيل…" : "شغّل المقطع"}</Button>
-        <p className="text-xs text-muted-foreground">يمكنكم إعادة تشغيل المقطع قبل كشف الإجابة.</p>
+        <p className="text-xs text-muted-foreground">{question.audio_url && !audioFailed ? "تسجيل صوتي حقيقي داخل اللعبة؛ يمكنكم إعادته قبل كشف الإجابة." : "يمكنكم إعادة تشغيل المقطع قبل كشف الإجابة."}</p>
       </div>
     )}
   </>;

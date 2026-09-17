@@ -2,7 +2,7 @@ import type { CategoryRow, QuestionRow } from "./game-types";
 
 /** Original local question bank. A session draws a fresh six-card set from
  * every selected category, preventing the same board from repeating. */
-type Fact = { text: string; answer: string; image?: string; audio?: string; video?: string };
+type Fact = { text: string; answer: string; image?: string; audio?: string; audioUrl?: string; video?: string };
 type LibraryCategory = Omit<CategoryRow, "id" | "group_id" | "sort_order"> & { facts: Fact[] };
 export interface LibraryGroup { id: string; slug: string; name: string; sort_order: number }
 
@@ -18,7 +18,7 @@ const playerImage = (file: string) => `/assets/billion-players/${encodeURICompon
 const commons = (file: string) => localQuizPlayers[file] ? playerImage(localQuizPlayers[file]) : `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=720`;
 const flag = (code: string) => `https://flagcdn.com/w640/${code}.png`;
 const q = (text: string, answer: string, image?: string): Fact => ({ text, answer, image });
-const qa = (text: string, answer: string, audio: string): Fact => ({ text, answer, audio });
+const qa = (text: string, answer: string, audio: string, audioUrl?: string): Fact => ({ text, answer, audio, audioUrl });
 const qv = (text: string, answer: string, video: string): Fact => ({ text, answer, video });
 const c = (slug: string, name: string, emoji: string, facts: Fact[], description = "أسئلة أصلية متدرجة ومتنوعة"): LibraryCategory => ({ slug, name, emoji, description, image_key: null, facts });
 
@@ -364,12 +364,12 @@ const mediaGroups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }>
       q("مين هاض اللاعب؟", "جود بيلينغهام", playerImage("Jude Bellingham.webp")),
     ], "لقطات رسمية وصور محلية واضحة؛ شاهدوا ثم جاوبوا"),
     c("audio-clues", "اسمع وخمّن", "🔊", [
-      qa("اسمعوا الوصف ثم حدّدوا الآلة.", "العود", "آلة شرقية لها أوتار وتُعزف بالريشة، وتُستخدم كثيراً في الموسيقى العربية."),
-      qa("اسمعوا الوصف ثم حدّدوا الآلة.", "البيانو", "آلة موسيقية لها مفاتيح بيضاء وسوداء، وتعزف بالنقر على المفاتيح."),
-      qa("اسمعوا الوصف ثم حدّدوا اللاعب.", "ليونيل ميسي", "لاعب أرجنتيني فاز بكأس العالم 2022، واشتهر بالرقم عشرة."),
-      qa("اسمعوا الوصف ثم حدّدوا اللاعب.", "محمد صلاح", "لاعب مصري يلعب في مركز الجناح، واشتهر مع نادي ليفربول."),
-      qa("اسمعوا الوصف ثم حدّدوا المدينة.", "عمّان", "عاصمة الأردن، وتشتهر بقلعة تاريخية ومدرج روماني في وسط المدينة."),
-      qa("اسمعوا الوصف ثم حدّدوا الكوكب.", "المريخ", "كوكب في المجموعة الشمسية يُعرف بالكوكب الأحمر."),
+      qa("اسمعوا الوصف ثم حدّدوا الآلة.", "العود", "آلة شرقية لها أوتار وتُعزف بالريشة، وتُستخدم كثيراً في الموسيقى العربية.", "/assets/audio-clues/oud.wav"),
+      qa("اسمعوا الوصف ثم حدّدوا الآلة.", "البيانو", "آلة موسيقية لها مفاتيح بيضاء وسوداء، وتعزف بالنقر على المفاتيح.", "/assets/audio-clues/piano.wav"),
+      qa("اسمعوا الوصف ثم حدّدوا اللاعب.", "ليونيل ميسي", "لاعب أرجنتيني فاز بكأس العالم 2022، واشتهر بالرقم عشرة.", "/assets/audio-clues/messi.wav"),
+      qa("اسمعوا الوصف ثم حدّدوا اللاعب.", "محمد صلاح", "لاعب مصري يلعب في مركز الجناح، واشتهر مع نادي ليفربول.", "/assets/audio-clues/salah.wav"),
+      qa("اسمعوا الوصف ثم حدّدوا المدينة.", "عمّان", "عاصمة الأردن، وتشتهر بقلعة تاريخية ومدرج روماني في وسط المدينة.", "/assets/audio-clues/amman.wav"),
+      qa("اسمعوا الوصف ثم حدّدوا الكوكب.", "المريخ", "كوكب في المجموعة الشمسية يُعرف بالكوكب الأحمر.", "/assets/audio-clues/mars.wav"),
     ], "مقاطع صوتية تُشغّل داخل اللعبة مع نص بديل عند الحاجة"),
   ] },
 ];
@@ -382,7 +382,7 @@ const allGroups = [...groups, ...restoredGroups, ...curatedExpansionGroups, ...v
 
 export const libraryGroups = allGroups.map(({ group }) => group);
 export const libraryCategories: CategoryRow[] = allGroups.flatMap(({ group, categories }) => categories.map((category, index) => ({ id: category.slug, group_id: group.id, sort_order: index + 1, slug: category.slug, name: category.name, description: category.description, image_key: category.image_key, emoji: category.emoji })));
-const pool: QuestionRow[] = allGroups.flatMap(({ categories }) => categories.flatMap((category) => [...category.facts, ...(deepFacts[category.slug] ?? [])].map((fact, index) => ({ id: `${category.slug}-${index + 1}`, category_id: category.slug, points: 0, kind: "open" as const, text: fact.text, choices: null, answer: fact.answer, image_url: fact.image ?? null, audio_text: fact.audio ?? null, video_url: fact.video ?? null }))));
+const pool: QuestionRow[] = allGroups.flatMap(({ categories }) => categories.flatMap((category) => [...category.facts, ...(deepFacts[category.slug] ?? [])].map((fact, index) => ({ id: `${category.slug}-${index + 1}`, category_id: category.slug, points: 0, kind: "open" as const, text: fact.text, choices: null, answer: fact.answer, image_url: fact.image ?? null, audio_url: fact.audioUrl ?? null, audio_text: fact.audio ?? null, video_url: fact.video ?? null }))));
 const shuffle = <T,>(items: T[]) => { const result = [...items]; for (let i = result.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [result[i], result[j]] = [result[j], result[i]]; } return result; };
 // كل فئة تحتوي بطاقتين لكل مستوى: واحدة لكل فريق عملياً عند تناوب الاختيار.
 // التكرار هنا مقصود في النقاط، وليس تكراراً للسؤال نفسه.
