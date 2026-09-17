@@ -15,7 +15,7 @@ export function CategoryCard({
   disabled?: boolean;
   onToggle?: () => void;
 }) {
-  const img = categoryImage(category.image_key);
+  const img = categoryImage(category.image_key ?? category.slug);
 
   return (
     <button

@@ -109,7 +109,7 @@ function PlayPage() {
         </div>
         <div className="taqha-board-grid">
           {game.categories.map((cat) => {
-            const img = categoryImage(cat.image_key);
+            const img = categoryImage(cat.image_key ?? cat.slug);
             return (
               <div key={cat.id} className="taqha-board-card">
                 <div className="taqha-category-core heritage-card rounded-2xl border border-border bg-card p-2 text-center">
@@ -174,11 +174,28 @@ function QuestionMedia({ question }: { question: QuestionRow }) {
   const [speaking, setSpeaking] = useState(false);
   const isPlayerPhoto = question.category_id === "players-by-photo";
 
+  function playStartTone() {
+    try {
+      const AudioContextClass = window.AudioContext ?? window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const context = new AudioContextClass();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = "sine"; oscillator.frequency.setValueAtTime(660, context.currentTime);
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.22);
+      oscillator.connect(gain).connect(context.destination); oscillator.start(); oscillator.stop(context.currentTime + 0.24);
+      window.setTimeout(() => void context.close(), 350);
+    } catch { /* The spoken clue still works when Web Audio is unavailable. */ }
+  }
+
   function playAudioClue() {
     if (!question.audio_text || typeof window === "undefined" || !("speechSynthesis" in window)) {
       toast.error("المتصفح لا يدعم تشغيل هذا المقطع الصوتي.");
       return;
     }
+    playStartTone();
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(question.audio_text);
     utterance.lang = "ar-JO";
