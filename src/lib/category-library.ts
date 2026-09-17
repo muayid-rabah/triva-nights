@@ -6,16 +6,7 @@ type Fact = { text: string; answer: string; image?: string; audio?: string; audi
 type LibraryCategory = Omit<CategoryRow, "id" | "group_id" | "sort_order"> & { facts: Fact[] };
 export interface LibraryGroup { id: string; slug: string; name: string; sort_order: number }
 
-const localQuizPlayers: Record<string, string> = {
-  "Lionel Messi WC2022.jpg": "Lionel Messi.webp",
-  "Mo Salah.jpg": "Mohamed Salah.webp",
-  "Cristiano Ronaldo 2018.jpg": "Cristiano Ronaldo.webp",
-  "Luka Modric 2018.jpg": "Luka Modrić.webp",
-  "Karim Benzema 2018.jpg": "Karim Benzema.webp",
-  "Kylian Mbappé 2018.jpg": "Kylian Mbappé.webp",
-};
-const playerImage = (file: string) => `/assets/billion-players/${encodeURIComponent(file)}`;
-const commons = (file: string) => localQuizPlayers[file] ? playerImage(localQuizPlayers[file]) : `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=720`;
+const quizPlayerPhoto = (file: string) => `/assets/quiz-player-photos/${file}`;
 const flag = (code: string) => `https://flagcdn.com/w640/${code}.png`;
 const q = (text: string, answer: string, image?: string): Fact => ({ text, answer, image });
 const qa = (text: string, answer: string, audio: string, audioUrl?: string): Fact => ({ text, answer, audio, audioUrl });
@@ -37,7 +28,7 @@ const groups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }> = [
       q("أي منتخب عربي وصل لنهائي كأس آسيا 2023 لأول مرة في تاريخه؟", "الأردن"), q("أي بلد فاز بكأس آسيا 2023؟", "قطر"), q("من اللاعب الأردني الذي سجّل ثلاثة أهداف في نصف نهائي كأس آسيا 2023؟", "يزن النعيمات"), q("ما لقب المنتخب الأردني؟", "النشامى"), q("أي منتخب عربي فاز بكأس أفريقيا 2019؟", "الجزائر"), q("ما جنسية اللاعب سفيان رحيمي؟", "مغربية"), q("أي منتخب يمثل وسام أبو علي دولياً؟", "فلسطين"), q("في أي مدينة يقع استاد عمّان الدولي؟", "عمّان"),
     ]),
     c("players-by-photo", "مين هاض اللاعب؟", "📸", [
-      q("مين هاض اللاعب؟", "ليونيل ميسي", commons("Lionel Messi WC2022.jpg")), q("مين هاض اللاعب؟", "محمد صلاح", commons("Mo Salah.jpg")), q("مين هاض اللاعب؟", "كريستيانو رونالدو", commons("Cristiano Ronaldo 2018.jpg")), q("مين هاض اللاعب؟", "لوكا مودريتش", commons("Luka Modric 2018.jpg")), q("مين هاض اللاعب؟", "كريم بنزيما", commons("Karim Benzema 2018.jpg")), q("مين هاض اللاعب؟", "كيليان مبابي", commons("Kylian Mbappé 2018.jpg")), q("مين هاض اللاعب؟", "نيمار", commons("Neymar Jr. with the Paris Saint-Germain.jpg")), q("مين هاض اللاعب؟", "سالم الدوسري", commons("Salem Al-Dawsari 2018.jpg")),
+      q("مين هاض اللاعب؟", "ليونيل ميسي", quizPlayerPhoto("messi.jpg")), q("مين هاض اللاعب؟", "محمد صلاح", quizPlayerPhoto("salah.jpg")), q("مين هاض اللاعب؟", "كريستيانو رونالدو", quizPlayerPhoto("ronaldo.jpg")), q("مين هاض اللاعب؟", "كريم بنزيما", quizPlayerPhoto("benzema.jpg")), q("مين هاض اللاعب؟", "كيليان مبابي", quizPlayerPhoto("mbappe.jpg")), q("مين هاض اللاعب؟", "سالم الدوسري", quizPlayerPhoto("dawsari.jpg")),
     ], "جولة بصرية: صورة لاعب، والجواب اسمه"),
     c("kits-and-crests", "شو هالقميص؟", "👕", [
       q("أي منتخب يمثل هذا القميص الوطني؟", "الأرجنتين", "/assets/national-kits/argentina-real.webp"), q("أي منتخب يمثل هذا القميص الوطني؟", "البرازيل", "/assets/national-kits/brazil-real.jpg"), q("أي منتخب يمثل هذا القميص الوطني؟", "إنجلترا", "/assets/national-kits/england-real.jpg"), q("أي منتخب يمثل هذا القميص الوطني؟", "هولندا", "/assets/national-kits/netherlands-real.jpg"), q("أي منتخب يمثل هذا القميص الوطني؟", "البرتغال", "/assets/national-kits/portugal-real.jpg"), q("أي منتخب يمثل هذا القميص الوطني؟", "ألمانيا", "/assets/national-kits/germany-real.jpg"),
@@ -360,9 +351,9 @@ const mediaGroups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }>
       qv("شاهدوا اللقطة: من نجم فرنسا الذي تألق أمام بولندا في مونديال 2022؟", "كيليان مبابي", "https://www.youtube-nocookie.com/embed/xnBr_gSPz8U?rel=0"),
       qv("شاهدوا اللقطة: من اللاعب البرتغالي صاحب الرقم القياسي في المباراة؟", "كريستيانو رونالدو", "https://www.youtube-nocookie.com/embed/RJ4jlutcSbY?rel=0"),
       qv("شاهدوا اللقطة: من قائد الأرجنتين الذي سجّل في مونديال 2022؟", "ليونيل ميسي", "https://www.youtube-nocookie.com/embed/olq9q-HeUc0?rel=0"),
-      q("مين هاض اللاعب؟", "إيرلينغ هالاند", playerImage("Erling Haaland.webp")),
-      q("مين هاض اللاعب؟", "جود بيلينغهام", playerImage("Jude Bellingham.webp")),
-    ], "لقطات رسمية وصور محلية واضحة؛ شاهدوا ثم جاوبوا"),
+      qv("شاهدوا اللقطة: من المهاجم المغربي الذي سجّل هدف الفوز التاريخي أمام البرتغال؟", "يوسف النصيري", "https://www.youtube-nocookie.com/embed/M766FGsv5do?rel=0"),
+      qv("شاهدوا اللقطة: أي منتخب عربي وصل إلى نصف نهائي مونديال 2022 بعد هذه المباراة؟", "المغرب", "https://www.youtube-nocookie.com/embed/5GVitElttLY?rel=0"),
+    ], "ست لقطات فيديو رسمية فقط؛ شاهدوا ثم جاوبوا"),
     c("audio-clues", "اسمع وخمّن", "🔊", [
       qa("اسمعوا الوصف ثم حدّدوا الآلة.", "العود", "آلة شرقية لها أوتار وتُعزف بالريشة، وتُستخدم كثيراً في الموسيقى العربية.", "/assets/audio-clues/oud.wav"),
       qa("اسمعوا الوصف ثم حدّدوا الآلة.", "البيانو", "آلة موسيقية لها مفاتيح بيضاء وسوداء، وتعزف بالنقر على المفاتيح.", "/assets/audio-clues/piano.wav"),
@@ -395,11 +386,13 @@ export function drawLibraryQuestions(categoryIds: string[]): QuestionRow[] {
   })();
   const drawn = categoryIds.flatMap((categoryId) => {
     const candidates = pool.filter((question) => question.category_id === categoryId);
-    // “Who is this player?” is a visual question, so never draw one of its
-    // old remote-image cards when a bundled player photo is available.
+    // Keep visual and video formats pure: a player-card name must never spoil
+    // a face quiz, and the watch-and-guess category must never fall back to an image.
     const playableCandidates = categoryId === "players-by-photo"
-      ? candidates.filter((question) => question.image_url?.startsWith("/assets/billion-players/"))
-      : candidates;
+      ? candidates.filter((question) => question.image_url?.startsWith("/assets/quiz-player-photos/"))
+      : categoryId === "football-clips"
+        ? candidates.filter((question) => Boolean(question.video_url))
+        : candidates;
     const seen = new Set(seenByCategory[categoryId] ?? []);
     // Do not repeat this browser's questions until the category bank is used.
     const eligible = playableCandidates.filter((question) => !seen.has(question.id));
