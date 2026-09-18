@@ -19,6 +19,7 @@ import { Route as GamesRouteImport } from './routes/games'
 import { Route as GiftsRouteImport } from './routes/gifts'
 import { Route as PackagesRouteImport } from './routes/packages'
 import { Route as PlayRouteImport } from './routes/play'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResultRouteImport } from './routes/result'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -72,6 +73,11 @@ const PlayRoute = PlayRouteImport.update({
   path: '/play',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResultRoute = ResultRouteImport.update({
   id: '/result',
   path: '/result',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
   '/play': typeof PlayRoute
+  '/privacy': typeof PrivacyRoute
   '/result': typeof ResultRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
   '/play': typeof PlayRoute
+  '/privacy': typeof PrivacyRoute
   '/result': typeof ResultRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/gifts': typeof GiftsRoute
   '/packages': typeof PackagesRoute
   '/play': typeof PlayRoute
+  '/privacy': typeof PrivacyRoute
   '/result': typeof ResultRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/gifts'
     | '/packages'
     | '/play'
+    | '/privacy'
     | '/result'
     | '/admin'
     | '/profile'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/gifts'
     | '/packages'
     | '/play'
+    | '/privacy'
     | '/result'
     | '/admin'
     | '/profile'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/gifts'
     | '/packages'
     | '/play'
+    | '/privacy'
     | '/result'
     | '/_authenticated/admin'
     | '/_authenticated/profile'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   GiftsRoute: typeof GiftsRoute
   PackagesRoute: typeof PackagesRoute
   PlayRoute: typeof PlayRoute
+  PrivacyRoute: typeof PrivacyRoute
   ResultRoute: typeof ResultRoute
 }
 
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/result': {
       id: '/result'
       path: '/result'
@@ -312,6 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   GiftsRoute: GiftsRoute,
   PackagesRoute: PackagesRoute,
   PlayRoute: PlayRoute,
+  PrivacyRoute: PrivacyRoute,
   ResultRoute: ResultRoute,
 }
 export const routeTree = rootRouteImport

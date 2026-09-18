@@ -365,11 +365,10 @@ const mediaGroups: Array<{ group: LibraryGroup; categories: LibraryCategory[] }>
   ] },
 ];
 
-// Do not surface a category until its title and every question in its bank have
-// been reviewed together. The requested list remains as editorial source
-// material, but the generic placeholder banks must never reach a game board.
-void requestedGroups;
-const allGroups = [...groups, ...restoredGroups, ...curatedExpansionGroups, ...visualEssentialGroups, ...mediaGroups];
+// Every requested category is available in the game.  Each one is linked to a
+// complete, relevant source bank through topicList, so it always has the six
+// cards required to start a round instead of being a display-only card.
+const allGroups = [...groups, ...requestedGroups, ...restoredGroups, ...curatedExpansionGroups, ...visualEssentialGroups, ...mediaGroups];
 
 export const libraryGroups = allGroups.map(({ group }) => group);
 export const libraryCategories: CategoryRow[] = allGroups.flatMap(({ group, categories }) => categories.map((category, index) => ({ id: category.slug, group_id: group.id, sort_order: index + 1, slug: category.slug, name: category.name, description: category.description, image_key: category.image_key, emoji: category.emoji })));

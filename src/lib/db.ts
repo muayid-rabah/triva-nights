@@ -10,30 +10,19 @@ export interface GroupRow {
 }
 
 export async function fetchGroups(): Promise<GroupRow[]> {
-  const { data, error } = await supabase
-    .from("category_groups")
-    .select("id, slug, name, sort_order")
-    .in("slug", libraryGroups.map((group) => group.slug))
-    .order("sort_order");
-  if (error || !data?.length) return libraryGroups;
-  const remote = new Set(data.map((group) => group.slug));
-  return [...data, ...libraryGroups.filter((group) => !remote.has(group.slug))]
-    .sort((a, b) => a.sort_order - b.sort_order);
+  // Built-in groups use stable string IDs that match the bundled categories.
+  // Supabase group IDs are UUIDs, so replacing these rows with remote ones
+  // hides local categories on a fresh deployment.  The local catalogue is the
+  // canonical board definition and remains available even while offline.
+  return libraryGroups;
 }
 
 export async function fetchCategories(): Promise<CategoryRow[]> {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, slug, name, description, image_key, emoji, group_id, sort_order")
-    .eq("catalogue_version", 2)
-    .order("sort_order");
-  if (error || !data?.length) return libraryCategories;
-  // A partially seeded Supabase project must never hide the richer built-in
-  // catalogue. Remote-only categories are preserved; duplicate slugs use the
-  // stable local id so their local question pack remains playable.
-  const localSlugs = new Set(libraryCategories.map((category) => category.slug));
-  return [...libraryCategories, ...data.filter((category) => !localSlugs.has(category.slug))]
-    .sort((a, b) => a.group_id.localeCompare(b.group_id) || a.sort_order - b.sort_order);
+  // Keep the full curated catalogue visible on web, Vercel, and Android.  Its
+  // question packs are bundled with the app; remote database categories are
+  // intentionally not mixed in here because their UUID group IDs do not map
+  // to the game's stable board groups.
+  return libraryCategories;
 }
 
 export async function fetchQuestionsFor(categoryIds: string[]): Promise<QuestionRow[]> {

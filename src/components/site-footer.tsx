@@ -1,4 +1,5 @@
 import { Apple, Instagram, Music2, Smartphone, Twitter, Youtube } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Brand } from "./site-header";
 
 const SOCIAL = [
@@ -35,9 +36,10 @@ export function SiteFooter() {
           </span>
         </div>
       </div>
-      <p className="border-t border-border/60 py-4 text-center text-xs text-muted-foreground">
-        كل الحقوق محفوظة © قدّ التحدي ٢٠٢٦
-      </p>
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-border/60 py-4 text-center text-xs text-muted-foreground">
+        <span>كل الحقوق محفوظة © قدّ التحدي ٢٠٢٦</span>
+        <Link to="/privacy" className="font-bold text-primary hover:underline">سياسة الخصوصية</Link>
+      </div>
     </footer>
   );
 }
