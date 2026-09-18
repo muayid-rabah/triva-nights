@@ -6,10 +6,23 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+const isCapacitorBuild = process.env["CAPACITOR_BUILD"] === "true";
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // The Android bundle is packaged as a client-side app. Keep the normal
+    // SSR build for Vercel untouched, but generate a real index.html when
+    // `npm run build:android` is used.
+    ...(isCapacitorBuild
+      ? {
+          spa: {
+            enabled: true,
+            prerender: { outputPath: "/index.html", crawlLinks: false, retryCount: 0 },
+          },
+        }
+      : {}),
   },
 });

@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Adapted from public/favicon.svg, the existing Qad Al-Tahaddi brand asset. -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,16A38,38 0,1 0,54,92A38,38 0,1 0,54,16"
+        android:strokeColor="#F6D982"
+        android:strokeWidth="5" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M32,68L76,68M44,68L44,46L64,46L64,68M40,46L68,46M49,34L59,34L59,46M34,34L45,46M74,34L63,46"
+        android:strokeColor="#F6D982"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

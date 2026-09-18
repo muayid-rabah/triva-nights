@@ -15,6 +15,7 @@ import "../game-polish.css";
 import { GameProvider } from "../lib/game-store";
 import { ThemeProvider } from "../lib/theme";
 import { Toaster } from "../components/ui/sonner";
+import { NativeRuntimeBridge } from "../components/native-runtime-bridge";
 
 function NotFoundComponent() {
   return (
@@ -130,6 +131,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <GameProvider>
+          <NativeRuntimeBridge />
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
           <Toaster position="top-center" richColors />

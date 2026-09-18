@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { normalizePhone, phoneError } from "@/lib/phone";
+import { App } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
+import { authRedirectUrl, isNativeApp } from "@/lib/native-platform";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -37,6 +40,29 @@ function AuthPage() {
     });
   }, [navigate]);
 
+  useEffect(() => {
+    if (!isNativeApp()) return;
+
+    let listener: Awaited<ReturnType<typeof App.addListener>> | undefined;
+    void App.addListener("appUrlOpen", async ({ url }) => {
+      if (!url.startsWith("com.nextaurastudios.qadaltahaddi://auth/")) return;
+
+      const { error } = await supabase.auth.exchangeCodeForSession(url);
+      await Browser.close();
+      if (error) {
+        toast.error("تعذّر إكمال تسجيل الدخول", { description: error.message });
+        return;
+      }
+      navigate({ to: "/create-game", replace: true });
+    }).then((handle) => {
+      listener = handle;
+    });
+
+    return () => {
+      void listener?.remove();
+    };
+  }, [navigate]);
+
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -63,7 +89,7 @@ function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: authRedirectUrl(),
         data: { first_name: firstName, last_name: lastName, country_code: countryCode, phone: normalizedPhone },
       },
     });
@@ -84,12 +110,17 @@ function AuthPage() {
   }
 
   async function google() {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const native = isNativeApp();
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: authRedirectUrl(), skipBrowserRedirect: native },
     });
     if (error) {
       toast.error("تعذر الدخول عبر Google");
+      return;
+    }
+    if (native && data.url) {
+      await Browser.open({ url: data.url });
       return;
     }
     // OAuth redirects away from the page. Social accounts claim a phone from

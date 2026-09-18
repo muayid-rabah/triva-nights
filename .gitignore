@@ -32,3 +32,11 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Android build products and signing material remain local.
+android/.gradle/
+android/local.properties
+android/**/build/
+android/**/*.jks
+android/**/*.keystore
+android/keystore.properties
