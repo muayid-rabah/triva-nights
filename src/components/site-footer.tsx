@@ -41,6 +41,10 @@ export function SiteFooter() {
         <Link to="/privacy" className="font-bold text-primary hover:underline">
           سياسة الخصوصية
         </Link>
+        <span>•</span>
+        <Link to="/delete-account" className="text-muted-foreground hover:text-primary hover:underline">
+          حذف الحساب والبيانات
+        </Link>
       </div>
     </footer>
   );

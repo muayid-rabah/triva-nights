@@ -11,6 +11,8 @@ import {
   PackageCheck,
   ShieldCheck,
   Sparkles,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,10 +22,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { normalizePhone, phoneError } from "@/lib/phone";
 import { useAdFreeEntitlement } from "@/lib/use-ad-free-entitlement";
 import { isNativeApp } from "@/lib/native-platform";
 import { openGooglePlaySubscriptionManagement } from "@/lib/google-play-client";
+import { executeAccountDeletion } from "@/lib/account-deletion-client";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -72,6 +86,23 @@ function ProfilePage() {
     avatar_url: "",
   });
   const [pw, setPw] = useState({ current: "", next: "" });
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  async function handleDeleteAccount() {
+    setIsDeletingAccount(true);
+    try {
+      await executeAccountDeletion();
+      qc.clear();
+      toast.success("تم حذف حسابك بنجاح");
+      navigate({ to: "/delete-account", search: { deleted: "true" } });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "فشل حذف الحساب";
+      toast.error(msg);
+      setIsDeletingAccount(false);
+    }
+  }
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -582,6 +613,92 @@ function ProfilePage() {
                 )}
               </TabsContent>
             </Tabs>
+
+            {/* منطقة الخطر: حذف الحساب نهائياً */}
+            <div className="mt-10 pt-8 border-t border-border">
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base font-bold text-destructive flex items-center gap-2">
+                      <Trash2 className="h-5 w-5" />
+                      <span>حذف الحساب نهائياً</span>
+                    </h3>
+                    <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl">
+                      سيتم حذف حسابك وجميع بياناتك ورصيدك نهائياً ولا يمكن استرجاعها. إذا كان لديك
+                      اشتراك فعال عبر Google Play أو مزود الدفع، يرجى إلغاؤه من المتجر أولاً.
+                    </p>
+                  </div>
+
+                  <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        className="font-bold shrink-0 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-sm"
+                      >
+                        <Trash2 className="h-4 w-4 ml-1.5" />
+                        حذف الحساب نهائياً
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent dir="rtl" className="bg-card border-border">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5" />
+                          <span>تأكيد حذف الحساب نهائياً</span>
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground text-xs sm:text-sm leading-relaxed space-y-2">
+                          <span className="block">
+                            أنت على وشك حذف حسابك في <strong>قدّ التحدي</strong> نهائياً:
+                          </span>
+                          <ul className="list-disc list-inside space-y-1 text-foreground/80">
+                            <li>سيتم مسح بيانات ملفك الشخصي ورقم هاتفك ورصيدك وسجلاتك.</li>
+                            <li>لا يمكن التراجع عن هذه العملية بعد تأكيدها.</li>
+                            <li>
+                              حذف الحساب لا يلغي تلقائياً اشتراكات Google Play، يجب إلغاؤها من المتجر.
+                            </li>
+                          </ul>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+
+                      <div className="my-3 space-y-2">
+                        <Label htmlFor="del_inapp" className="text-xs font-semibold text-foreground">
+                          لتأكيد العملية، اكتب <strong className="text-destructive">حذف</strong> أو{" "}
+                          <strong className="text-destructive">DELETE</strong>:
+                        </Label>
+                        <Input
+                          id="del_inapp"
+                          type="text"
+                          placeholder="حذف"
+                          value={deleteConfirmText}
+                          onChange={(e) => setDeleteConfirmText(e.target.value)}
+                          className="border-destructive/40 focus-visible:ring-destructive"
+                          dir="ltr"
+                        />
+                      </div>
+
+                      <AlertDialogFooter className="flex-row-reverse gap-2">
+                        <AlertDialogCancel
+                          disabled={isDeletingAccount}
+                          onClick={() => setDeleteConfirmText("")}
+                        >
+                          إلغاء
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteAccount}
+                          disabled={
+                            (deleteConfirmText.trim() !== "حذف" &&
+                              deleteConfirmText.trim().toUpperCase() !== "DELETE") ||
+                            isDeletingAccount
+                          }
+                          className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold"
+                        >
+                          {isDeletingAccount ? "جاري الحذف..." : "تأكيد الحذف نهائياً"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       </main>
