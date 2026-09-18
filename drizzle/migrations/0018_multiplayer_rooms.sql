@@ -683,7 +683,6 @@ BEGIN
   UPDATE public.rooms
   SET status = 'playing',
       current_turn = 0,
-      session_data = coalesce(p_session_data, '{}'::jsonb),
       session_data = v_session,
       updated_at = now()
   WHERE id = p_room_id
@@ -710,7 +709,6 @@ DECLARE
   v_player public.room_players%ROWTYPE;
   v_session jsonb;
   v_q_id text;
-  v_awarded_team integer;
   v_secret_q public.room_questions%ROWTYPE;
   v_awarded_team integer := NULL;
   v_points integer;
@@ -734,7 +732,6 @@ BEGIN
   FROM public.rooms
   WHERE id = p_room_id;
 
-  SELECT * INTO v_room FROM public.rooms WHERE id = p_room_id;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'ROOM_NOT_FOUND: الغرفة غير موجودة';
   END IF;
@@ -748,8 +745,6 @@ BEGIN
   FROM public.room_players
   WHERE room_id = p_room_id AND user_id = v_user_id;
 
-  -- TEST CASE G: Non-member action rejected
-  SELECT * INTO v_player FROM public.room_players WHERE room_id = p_room_id AND user_id = v_user_id;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'NOT_IN_ROOM: أنت لست عضواً في هذه الغرفة';
   END IF;
