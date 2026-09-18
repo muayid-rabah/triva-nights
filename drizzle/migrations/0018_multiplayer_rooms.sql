@@ -186,22 +186,50 @@ BEGIN
 END;
 $$;
 
--- Seed curated categories & questions if not present
-INSERT INTO public.categories (slug, name, emoji, sort_order)
-VALUES
-  ('world-cup', 'كأس العالم', '🏆', 1),
-  ('champions-league', 'دوري الأبطال', '⭐', 2),
-  ('arab-football', 'كرة القدم العربية', '🌍', 3),
-  ('arab-series', 'مسلسلات عربية', '📺', 4),
-  ('arab-cinema', 'سينما عربية', '🎬', 5),
-  ('no-words', 'من دون كلام', '🤫', 6),
-  ('jordan-landmarks', 'أردننا', '🇯🇴', 7),
-  ('palestine', 'فلسطين: مدن وحكايات', '🇵🇸', 8),
-  ('history-and-civilization', 'تاريخ وحضارات', '🏛️', 9),
-  ('science-and-space', 'علوم وفضاء', '🔬', 10),
-  ('flags-and-countries', 'أعلام ودول', '🗺️', 11),
-  ('general', 'معلومات عامة', '💡', 12)
-ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, emoji = EXCLUDED.emoji;
+-- Verify all required category groups exist before inserting categories
+DO $$
+DECLARE
+  v_missing text[];
+BEGIN
+  SELECT array_agg(required_slug)
+  INTO v_missing
+  FROM unnest(ARRAY['football', 'screens', 'jordan-palestine', 'world', 'culture']) AS required_slug
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public.category_groups WHERE slug = required_slug
+  );
+
+  IF v_missing IS NOT NULL AND array_length(v_missing, 1) > 0 THEN
+    RAISE EXCEPTION 'REQUIRED_CATEGORY_GROUP_MISSING: The following required category groups do not exist in public.category_groups: %', array_to_string(v_missing, ', ');
+  END IF;
+END $$;
+
+-- Seed curated categories if not present (Resolving group_id dynamically from category_groups)
+INSERT INTO public.categories (group_id, slug, name, emoji, sort_order)
+SELECT
+  (SELECT id FROM public.category_groups WHERE slug = v.group_slug LIMIT 1),
+  v.slug,
+  v.name,
+  v.emoji,
+  v.sort_order
+FROM (VALUES
+  ('football', 'world-cup', 'كأس العالم', '🏆', 1),
+  ('football', 'champions-league', 'دوري الأبطال', '⭐', 2),
+  ('football', 'arab-football', 'كرة القدم العربية', '🌍', 3),
+  ('screens', 'arab-series', 'مسلسلات عربية', '📺', 4),
+  ('screens', 'arab-cinema', 'سينما عربية', '🎬', 5),
+  ('screens', 'no-words', 'من دون كلام', '🤫', 6),
+  ('jordan-palestine', 'jordan-landmarks', 'أردننا', '🇯🇴', 7),
+  ('jordan-palestine', 'palestine', 'فلسطين: مدن وحكايات', '🇵🇸', 8),
+  ('world', 'history-and-civilization', 'تاريخ وحضارات', '🏛️', 9),
+  ('world', 'science-and-space', 'علوم وفضاء', '🔬', 10),
+  ('world', 'flags-and-countries', 'أعلام ودول', '🗺️', 11),
+  ('culture', 'general', 'معلومات عامة', '💡', 12)
+) AS v(group_slug, slug, name, emoji, sort_order)
+ON CONFLICT (slug) DO UPDATE SET
+  group_id = EXCLUDED.group_id,
+  name = EXCLUDED.name,
+  emoji = EXCLUDED.emoji,
+  sort_order = EXCLUDED.sort_order;
 
 INSERT INTO public.questions (category_id, points, kind, text, choices, answer)
 SELECT c.id, q.points, q.kind::public.question_kind, q.text, q.choices, q.answer
@@ -284,6 +312,10 @@ FROM (VALUES
   ('flags-and-countries', 600, 'open', 'كم عدد النجوم في علم الولايات المتحدة الأمريكية؟', NULL, '50')
 ) AS q(cat_slug, points, kind, text, choices, answer)
 JOIN public.categories c ON c.slug = q.cat_slug
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.questions eq
+  WHERE eq.category_id = c.id AND eq.text = q.text
+)
 ON CONFLICT DO NOTHING;
 
 -- Function 1: Create a 2-player multiplayer room
