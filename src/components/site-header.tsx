@@ -1,9 +1,21 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Gavel, Gamepad2, Gift, LogIn, Menu, Moon, Plus, Search, Skull, Sun, Target, Trophy, Type, User2, X } from "lucide-react";
-import { useState } from "react";
+import {
+  ChevronDown,
+  Gavel,
+  Gamepad2,
+  Gift,
+  LogIn,
+  Plus,
+  Search,
+  Skull,
+  Target,
+  Trophy,
+  Type,
+  User2,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/lib/theme";
 
 const NAV = [
   { to: "/packages", label: "الباقات" },
@@ -21,20 +33,45 @@ const GAME_NAV = [
 
 export function Brand() {
   return (
-    <Link to="/" className="brand-lockup flex shrink-0 items-center gap-2" aria-label="قدّ التحدي - الصفحة الرئيسية">
-      <span className="brand-mark grid h-11 w-11 place-items-center" aria-hidden="true">
-        <svg viewBox="0 0 64 64" className="h-10 w-10">
+    <Link
+      to="/"
+      className="brand-lockup flex shrink-0 items-center gap-2"
+      aria-label="قدّ التحدي - الصفحة الرئيسية"
+    >
+      <span
+        className="brand-mark grid h-10 w-10 place-items-center sm:h-11 sm:w-11"
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 64 64" className="h-9 w-9 sm:h-10 sm:w-10">
           <circle cx="32" cy="32" r="23" fill="currentColor" opacity=".1" />
           <circle cx="32" cy="32" r="18.5" fill="none" stroke="currentColor" strokeWidth="2.25" />
-          <circle cx="32" cy="35" r="8" fill="none" stroke="currentColor" strokeWidth="2" opacity=".75" />
+          <circle
+            cx="32"
+            cy="35"
+            r="8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            opacity=".75"
+          />
           <circle cx="32" cy="35" r="2.5" fill="currentColor" />
-          <path d="m21 18 17 17m-1-16 7 7-6 6-7-7zM19 40l5 5m16-5-5 5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="m21 18 17 17m-1-16 7 7-6 6-7-7zM19 40l5 5m16-5-5 5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
+        <span className="brand-dot" />
         <i className="brand-impact-ring" />
       </span>
-      <span className="brand-gradient font-display text-xl font-black leading-none tracking-tight">
+      <span className="brand-gradient font-display text-lg font-black leading-none tracking-tight sm:text-xl">
         قدّ التحدي
-        <span className="block text-[11px] font-bold tracking-normal">لَمّة وتحدّي</span>
+        <span className="block text-[10px] font-bold tracking-normal sm:text-[11px]">
+          لَمّة وتحدّي
+        </span>
       </span>
     </Link>
   );
@@ -42,33 +79,113 @@ export function Brand() {
 
 export function SiteHeader() {
   const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const [open, setOpen] = useState(false);
   const [gamesOpen, setGamesOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!gamesOpen) return;
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setGamesOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setGamesOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [gamesOpen]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur">
-      <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
+    <header
+      className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur"
+      style={{ paddingTop: "var(--safe-area-top, 0px)" }}
+    >
+      {/* 1. Mobile & Tablet Compact App Bar (< 1024px) */}
+      <div className="flex h-14 items-center justify-between px-4 lg:hidden">
         <Brand />
 
-        <nav className="hidden min-w-0 items-center justify-center gap-6 md:flex">
-          <div className="relative" onMouseEnter={() => setGamesOpen(true)} onMouseLeave={() => setGamesOpen(false)}>
+        <div className="flex items-center gap-1.5">
+          {user ? (
+            <Button
+              asChild
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 text-gold"
+              aria-label="حسابي"
+            >
+              <Link to="/profile">
+                <User2 className="h-5 w-5" />
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              asChild
+              size="sm"
+              variant="ghost"
+              className="h-9 px-3 text-xs font-bold text-gold"
+            >
+              <Link to="/auth">
+                <LogIn className="ms-1 h-4 w-4" /> دخول
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Desktop Full Header (>= 1024px) */}
+      <div className="mx-auto hidden max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 lg:grid">
+        <Brand />
+
+        <nav className="flex min-w-0 items-center justify-center gap-6">
+          <div
+            ref={menuRef}
+            className="relative"
+            onMouseEnter={() => setGamesOpen(true)}
+            onMouseLeave={() => setGamesOpen(false)}
+          >
             <button
-              className="flex items-center gap-1 text-sm font-bold text-muted-foreground transition-colors hover:text-primary"
+              type="button"
+              className="flex items-center gap-1 text-sm font-bold text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary"
               aria-expanded={gamesOpen}
               aria-haspopup="menu"
-              onClick={() => setGamesOpen((value) => !value)}
+              onClick={() => setGamesOpen((val) => !val)}
             >
-              العب <ChevronDown className={`h-4 w-4 transition-transform ${gamesOpen ? "rotate-180" : ""}`} />
+              العب{" "}
+              <ChevronDown
+                className={`h-4 w-4 transition-transform duration-200 ${gamesOpen ? "rotate-180 text-gold" : ""}`}
+              />
             </button>
             {gamesOpen && (
-              <div className="games-menu absolute left-1/2 top-full mt-3 w-60 -translate-x-1/2 rounded-2xl border border-gold/45 p-2 shadow-2xl" role="menu">
-                <Link to="/games" className="mb-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-extrabold text-gold hover:bg-gold/10" role="menuitem">
-                  <Gamepad2 className="h-4 w-4" /> كل الألعاب
+              <div
+                className="games-menu absolute start-1/2 top-full mt-2 w-64 -translate-x-1/2 rounded-2xl border border-gold/45 bg-popover/95 p-2 shadow-2xl backdrop-blur-md z-50 before:absolute before:-top-3 before:start-0 before:end-0 before:h-3 before:content-['']"
+                role="menu"
+                dir="rtl"
+              >
+                <Link
+                  to="/games"
+                  className="mb-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-extrabold text-gold hover:bg-gold/15 transition-colors"
+                  onClick={() => setGamesOpen(false)}
+                  role="menuitem"
+                >
+                  <Gamepad2 className="h-4 w-4 shrink-0" /> كل الألعاب
                 </Link>
                 {GAME_NAV.map(({ to, search, label, Icon }) => (
-                  <Link key={label} to={to} search={search} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-foreground transition-colors hover:bg-primary/10 hover:text-primary" role="menuitem">
-                    <Icon className="h-4 w-4 text-gold" /> {label}
+                  <Link
+                    key={label}
+                    to={to}
+                    search={search}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-foreground transition-colors hover:bg-primary/15 hover:text-primary"
+                    onClick={() => setGamesOpen(false)}
+                    role="menuitem"
+                  >
+                    <Icon className="h-4 w-4 text-gold shrink-0" /> {label}
                   </Link>
                 ))}
               </div>
@@ -87,15 +204,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الغامق"}
-            title={theme === "dark" ? "الوضع الفاتح" : "الوضع الغامق"}
-          >
-            {theme === "dark" ? <Sun className="h-5 w-5 text-gold" /> : <Moon className="h-5 w-5 text-primary" />}
-          </Button>
           {user ? (
             <>
               <Button asChild size="sm" className="hidden sm:inline-flex">
@@ -121,36 +229,8 @@ export function SiteHeader() {
               </Link>
             </Button>
           )}
-          <button
-            className="md:hidden"
-            onClick={() => setOpen((v) => !v)}
-            aria-label="القائمة"
-          >
-            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
         </div>
       </div>
-
-      {open && (
-        <nav className="border-t border-border/60 px-4 py-3 md:hidden">
-          <Link to="/games" onClick={() => setOpen(false)} className="block py-2 font-bold text-gold">كل الألعاب</Link>
-          {GAME_NAV.map(({ to, search, label }) => (
-            <Link key={label} to={to} search={search} onClick={() => setOpen(false)} className="block py-2 pr-3 font-bold text-muted-foreground">
-              {label}
-            </Link>
-          ))}
-          {NAV.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={() => setOpen(false)}
-              className="block py-2 font-bold text-muted-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      )}
     </header>
   );
 }

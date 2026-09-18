@@ -38,11 +38,19 @@ function CreateGamePage() {
   const [starter, setStarter] = useState<0 | 1>(0);
   const [starting, setStarting] = useState(false);
 
-  const { data: access, isLoading: accessLoading, refetch: refetchAccess } = useQuery({
+  const {
+    data: access,
+    isLoading: accessLoading,
+    refetch: refetchAccess,
+  } = useQuery({
     queryKey: ["game-access", user?.id],
     enabled: Boolean(user),
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("games_left, phone").eq("id", user!.id).single();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("games_left, phone")
+        .eq("id", user!.id)
+        .single();
       if (error) throw error;
       return data;
     },
@@ -75,17 +83,30 @@ function CreateGamePage() {
   }
 
   function scrollToGroup(index: number) {
-    document.getElementById(`group-${index}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document
+      .getElementById(`group-${index}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   const ready = selected.length === 6 && teamA.trim() && teamB.trim();
 
   async function start() {
     if (!ready || !user) return;
-    if (!access?.phone) {
-      toast.info("ثبّت رقم تلفونك أول", { description: "بدنا رقمك قبل أول لعبة عشان تظل المحاولات عادلة." });
-      navigate({ to: "/profile" });
+    const hasPhone = Boolean(access?.phone || user.phone);
+    if (!hasPhone) {
+      toast.info("أكمل بيانات حسابك أولاً", {
+        description: "بدنا رقمك وبياناتك قبل أول لعبة عشان تظل المحاولات عادلة.",
+      });
+      navigate({ to: "/onboarding" });
       return;
+    }
+    if (!access?.phone && user.phone) {
+      const country = user.phone.startsWith("+970") ? "+970" : "+962";
+      const local = user.phone.replace(/^\+962|^\+970/, "").replace(/^0/, "");
+      void supabase
+        .from("profiles")
+        .update({ country_code: country, phone: local })
+        .eq("id", user.id);
     }
     setStarting(true);
     try {
@@ -96,7 +117,10 @@ function CreateGamePage() {
         .map((id) => categories.find((c) => c.id === id))
         .filter(Boolean) as CategoryRow[];
 
-      const incompleteCategory = chosen.some((category) => questions.filter((question) => question.category_id === category.id).length < 6);
+      const incompleteCategory = chosen.some(
+        (category) =>
+          questions.filter((question) => question.category_id === category.id).length < 6,
+      );
       if (chosen.length !== 6 || incompleteCategory) {
         throw new Error("لم نتمكن من تحميل أسئلة كافية للفئات المختارة.");
       }
@@ -150,7 +174,12 @@ function CreateGamePage() {
   }
 
   if (authLoading || !user || accessLoading) {
-    return <div className="min-h-screen"><SiteHeader /><p className="py-24 text-center text-muted-foreground">بنجهّز حسابك…</p></div>;
+    return (
+      <div className="min-h-screen">
+        <SiteHeader />
+        <p className="py-24 text-center text-muted-foreground">بنجهّز حسابك…</p>
+      </div>
+    );
   }
 
   return (
@@ -164,8 +193,16 @@ function CreateGamePage() {
         </p>
 
         <div className="mx-auto mt-5 flex max-w-xl items-center justify-between rounded-2xl border border-gold/40 bg-surface px-4 py-3 text-sm">
-          <span>رصيدك الحالي: <b className="text-gold">{access?.games_left ?? 0} لعبة</b></span>
-          {(access?.games_left ?? 0) === 0 ? <Button asChild size="sm" variant="outline"><Link to="/packages">اشترِ لعبة جديدة</Link></Button> : <span className="text-muted-foreground">إلك لعبتين مجاناً بالحساب</span>}
+          <span>
+            رصيدك الحالي: <b className="text-gold">{access?.games_left ?? 0} لعبة</b>
+          </span>
+          {(access?.games_left ?? 0) === 0 ? (
+            <Button asChild size="sm" variant="outline">
+              <Link to="/packages">اشترِ لعبة جديدة</Link>
+            </Button>
+          ) : (
+            <span className="text-muted-foreground">إلك لعبتين مجاناً بالحساب</span>
+          )}
         </div>
 
         <div className="mx-auto mt-8 flex max-w-2xl items-center gap-2">
@@ -250,8 +287,28 @@ function CreateGamePage() {
           <div className="mx-auto mt-6 max-w-2xl rounded-2xl bg-surface p-3 text-center">
             <p className="text-sm font-bold text-muted-foreground">مين ببلّش أول جولة؟</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setStarter(0)} className={starter === 0 ? "heritage-primary rounded-xl px-3 py-2 font-bold text-primary-foreground" : "rounded-xl bg-surface-2 px-3 py-2 font-bold"}>{teamA || "الفريق الأول"}</button>
-              <button type="button" onClick={() => setStarter(1)} className={starter === 1 ? "heritage-primary rounded-xl px-3 py-2 font-bold text-primary-foreground" : "rounded-xl bg-surface-2 px-3 py-2 font-bold"}>{teamB || "الفريق الثاني"}</button>
+              <button
+                type="button"
+                onClick={() => setStarter(0)}
+                className={
+                  starter === 0
+                    ? "heritage-primary rounded-xl px-3 py-2 font-bold text-primary-foreground"
+                    : "rounded-xl bg-surface-2 px-3 py-2 font-bold"
+                }
+              >
+                {teamA || "الفريق الأول"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStarter(1)}
+                className={
+                  starter === 1
+                    ? "heritage-primary rounded-xl px-3 py-2 font-bold text-primary-foreground"
+                    : "rounded-xl bg-surface-2 px-3 py-2 font-bold"
+                }
+              >
+                {teamB || "الفريق الثاني"}
+              </button>
             </div>
           </div>
         </section>
@@ -264,7 +321,11 @@ function CreateGamePage() {
             disabled={!ready || starting || (access?.games_left ?? 0) === 0}
             onClick={start}
           >
-            {starting ? "بنجهّز الجولة…" : (access?.games_left ?? 0) === 0 ? "اشترِ لعبة جديدة" : "يلا نبدأ"}
+            {starting
+              ? "بنجهّز الجولة…"
+              : (access?.games_left ?? 0) === 0
+                ? "اشترِ لعبة جديدة"
+                : "يلا نبدأ"}
           </Button>
         </div>
       </div>

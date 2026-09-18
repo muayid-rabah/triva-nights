@@ -1,7 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Camera, Gift, LogOut, Plus } from "lucide-react";
+import {
+  Camera,
+  Gift,
+  LogOut,
+  Plus,
+  ShoppingBag,
+  Clock,
+  PackageCheck,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
@@ -11,6 +21,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { normalizePhone, phoneError } from "@/lib/phone";
+import { useAdFreeEntitlement } from "@/lib/use-ad-free-entitlement";
+import { isNativeApp } from "@/lib/native-platform";
+import { openGooglePlaySubscriptionManagement } from "@/lib/google-play-client";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -34,9 +47,22 @@ const COUNTRIES = [
   { code: "+968", label: "عُمان (+968)" },
 ];
 
+interface PurchaseRecord {
+  id: string;
+  provider: string;
+  credits: number;
+  amount: number;
+  currency: string;
+  status: string;
+  created_at: string;
+  verified_at: string | null;
+  packages: { name: string; slug: string } | null;
+}
+
 function ProfilePage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { isAdFree, subscription: activeSub } = useAdFreeEntitlement();
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -58,7 +84,36 @@ function ProfilePage() {
         .eq("id", auth.user.id)
         .maybeSingle();
       if (error) throw error;
-      return { ...data, email: auth.user.email, id: auth.user.id };
+
+      const fallbackPhone = auth.user.phone
+        ? auth.user.phone.replace(/^\+962|^\+970/, "").replace(/^0/, "")
+        : null;
+      const fallbackCountry = auth.user.phone?.startsWith("+970") ? "+970" : "+962";
+      return {
+        ...data,
+        country_code: data?.country_code ?? fallbackCountry,
+        phone: data?.phone ?? fallbackPhone,
+        email: data?.email ?? auth.user.email ?? null,
+        id: auth.user.id,
+      };
+    },
+  });
+
+  const { data: purchases = [], isLoading: purchasesLoading } = useQuery({
+    queryKey: ["purchases", profile?.id],
+    enabled: Boolean(profile?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("purchases")
+        .select(
+          "id, provider, credits, amount, currency, status, created_at, verified_at, packages(name, slug)",
+        )
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.warn("[Purchases Fetch Error]:", error.message);
+        return [];
+      }
+      return data || [];
     },
   });
 
@@ -105,28 +160,39 @@ function ProfilePage() {
         p_phone: normalizePhone(form.country_code, form.phone),
       });
       if (claimError) {
-        const rpcMissing = claimError.message.includes("Could not find the function") || claimError.code === "PGRST202";
+        const rpcMissing =
+          claimError.message.includes("Could not find the function") ||
+          claimError.code === "PGRST202";
         if (rpcMissing) {
           // Compatibility for an older project that does not have the RPC yet.
           const { error: fallbackError } = await supabase
             .from("profiles")
-            .update({ country_code: form.country_code, phone: normalizePhone(form.country_code, form.phone) })
+            .update({
+              country_code: form.country_code,
+              phone: normalizePhone(form.country_code, form.phone),
+            })
             .eq("id", userId);
           if (!fallbackError) {
-            toast.info("انحفظ الرقم بالتوافق المؤقت", { description: "شغّل 0007_restore_phone_rpc.sql لاحقاً لتفعيل حماية الرقم وحدّ الحسابات." });
+            toast.info("انحفظ الرقم بالتوافق المؤقت", {
+              description:
+                "شغّل 0007_restore_phone_rpc.sql لاحقاً لتفعيل حماية الرقم وحدّ الحسابات.",
+            });
           } else {
-            toast.error("ما قدرنا نثبّت رقم التلفون", { description: "قاعدة البيانات لا تحتوي دالة التثبيت ولا تسمح بالحفظ المباشر. شغّل 0007_restore_phone_rpc.sql في مشروع Supabase المتصل بالموقع ثم أعد تشغيل السيرفر." });
+            toast.error("ما قدرنا نثبّت رقم التلفون", {
+              description:
+                "قاعدة البيانات لا تحتوي دالة التثبيت ولا تسمح بالحفظ المباشر. شغّل 0007_restore_phone_rpc.sql في مشروع Supabase المتصل بالموقع ثم أعد تشغيل السيرفر.",
+            });
             return;
           }
         } else {
-        toast.error("ما قدرنا نثبت رقم التلفون", {
-          description: rpcMissing
-            ? "دالة تثبيت الهاتف غير مفعّلة في Supabase. شغّل 0006_repair_existing_supabase.sql ثم نفّذ: NOTIFY pgrst, 'reload schema';"
-            : claimError.message.includes("PHONE_ACCOUNT_LIMIT")
-              ? "نفس الرقم مسموح له بحسابين فقط."
-              : claimError.message,
-        });
-        return;
+          toast.error("ما قدرنا نثبت رقم التلفون", {
+            description: rpcMissing
+              ? "دالة تثبيت الهاتف غير مفعّلة في Supabase. شغّل 0006_repair_existing_supabase.sql ثم نفّذ: NOTIFY pgrst, 'reload schema';"
+              : claimError.message.includes("PHONE_ACCOUNT_LIMIT")
+                ? "نفس الرقم مسموح له بحسابين فقط."
+                : claimError.message,
+          });
+          return;
         }
       }
     }
@@ -173,7 +239,7 @@ function ProfilePage() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main className="mx-auto max-w-5xl px-4 py-10">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl text-primary">حسابي</h1>
           <div className="flex flex-wrap gap-2">
@@ -198,7 +264,11 @@ function ProfilePage() {
             <div className="relative mx-auto h-28 w-28">
               <div className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-surface-2 text-4xl">
                 {form.avatar_url ? (
-                  <img src={form.avatar_url} alt={fullName} className="h-full w-full object-cover" />
+                  <img
+                    src={form.avatar_url}
+                    alt={fullName}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   "🙂"
                 )}
@@ -213,17 +283,78 @@ function ProfilePage() {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     const reader = new FileReader();
-                    reader.onload = () => setForm((f) => ({ ...f, avatar_url: String(reader.result) }));
+                    reader.onload = () =>
+                      setForm((f) => ({ ...f, avatar_url: String(reader.result) }));
                     reader.readAsDataURL(file);
                   }}
                 />
               </label>
             </div>
             <p className="mt-4 font-display text-lg">{fullName}</p>
-            <p className="text-sm text-muted-foreground">{profile?.email}</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              ألعاب متبقية: <span className="font-bold text-foreground">{profile?.games_left ?? 0}</span>
+            <p className="text-sm text-muted-foreground">
+              {profile?.email ||
+                (profile?.phone
+                  ? `${profile.country_code ?? ""} ${profile.phone}`
+                  : "حساب برقم الهاتف")}
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              ألعاب متبقية:{" "}
+              <span className="font-bold text-foreground">{profile?.games_left ?? 0}</span>
+            </p>
+
+            {/* Ad-Free Subscription Status Card */}
+            <div className="mt-3 rounded-2xl border border-border bg-surface-2/60 p-3 text-start">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">حالة الإعلانات:</span>
+                {isAdFree ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-success">
+                    <ShieldCheck className="h-3 w-3" /> بدون إعلانات
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    تتضمن إعلانات
+                  </span>
+                )}
+              </div>
+              {isAdFree ? (
+                <div className="mt-2">
+                  <p className="text-xs text-foreground font-medium">
+                    {activeSub?.plan === "ad_free_yearly" ? "اشتراك سنوي نشط" : "اشتراك شهري نشط"}
+                  </p>
+                  {activeSub?.current_period_end && (
+                    <p className="text-[10px] text-muted-foreground">
+                      ينتهي: {new Date(activeSub.current_period_end).toLocaleDateString("ar-JO")}
+                    </p>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-1 h-7 w-full text-xs text-primary hover:text-primary/80 px-0"
+                    onClick={() => {
+                      if (isNativeApp()) {
+                        void openGooglePlaySubscriptionManagement();
+                      } else {
+                        navigate({ to: "/packages" });
+                      }
+                    }}
+                  >
+                    إدارة الاشتراك
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  asChild
+                  variant="link"
+                  size="sm"
+                  className="mt-1 h-6 w-full text-xs text-primary p-0 justify-start"
+                >
+                  <Link to="/packages">
+                    <Sparkles className="ms-1 h-3 w-3" /> إزالة الإعلانات الآن
+                  </Link>
+                </Button>
+              )}
+            </div>
+
             <Button variant="outline" className="mt-5 w-full text-destructive" onClick={signOut}>
               <LogOut className="ms-1 h-4 w-4" /> تسجيل خروج
             </Button>
@@ -231,9 +362,10 @@ function ProfilePage() {
 
           <section className="rounded-3xl border border-border bg-card p-6">
             <Tabs defaultValue="info">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="info">حسابي التعريفي</TabsTrigger>
-                <TabsTrigger value="pw">تغيير كلمة المرور</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="info">البيانات</TabsTrigger>
+                <TabsTrigger value="purchases">سجل المشتريات</TabsTrigger>
+                <TabsTrigger value="pw">كلمة المرور</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info">
@@ -241,11 +373,19 @@ function ProfilePage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="fn">الاسم الأول</Label>
-                      <Input id="fn" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
+                      <Input
+                        id="fn"
+                        value={form.first_name}
+                        onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                      />
                     </div>
                     <div>
                       <Label htmlFor="ln">اسم العائلة</Label>
-                      <Input id="ln" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
+                      <Input
+                        id="ln"
+                        value={form.last_name}
+                        onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                      />
                     </div>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
@@ -267,34 +407,179 @@ function ProfilePage() {
                     </div>
                     <div>
                       <Label htmlFor="ph">رقم الهاتف</Label>
-                      <Input id="ph" type="tel" inputMode="numeric" autoComplete="tel-national" required={!profile?.phone} readOnly={Boolean(profile?.phone)} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9+]/g, "") })} placeholder={form.country_code === "+970" ? "0591234567" : "0791234567"} />
-                      <p className="mt-1 text-xs text-muted-foreground">{profile?.phone ? "الرقم مثبت للحساب وما بنقدر نعدّله." : "اكتب الرقم مع الصفر أو بدونه؛ بنوحّده تلقائياً قبل التثبيت."}</p>
+                      <Input
+                        id="ph"
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        required={!profile?.phone}
+                        readOnly={Boolean(profile?.phone)}
+                        value={form.phone}
+                        onChange={(e) =>
+                          setForm({ ...form, phone: e.target.value.replace(/[^0-9+]/g, "") })
+                        }
+                        placeholder={form.country_code === "+970" ? "0591234567" : "0791234567"}
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {profile?.phone
+                          ? "الرقم مثبت للحساب وما بنقدر نعدّله."
+                          : "اكتب الرقم مع الصفر أو بدونه؛ بنوحّده تلقائياً قبل التثبيت."}
+                      </p>
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="em">البريد الإلكتروني</Label>
-                    <Input id="em" value={profile?.email ?? ""} readOnly />
+                    <Input
+                      id="em"
+                      value={profile?.email ?? ""}
+                      readOnly
+                      placeholder="مسجل برقم الهاتف (بدون بريد إلكتروني)"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="bd">تاريخ الميلاد</Label>
-                    <Input id="bd" type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
+                    <Input
+                      id="bd"
+                      type="date"
+                      value={form.birth_date}
+                      onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
+                    />
                   </div>
                   <Button type="submit">حفظ التغييرات</Button>
                 </form>
               </TabsContent>
 
+              <TabsContent value="purchases">
+                <div className="mt-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-bold text-foreground">سجل الباقات والمشتريات</h2>
+                      <p className="text-xs text-muted-foreground">
+                        تتبع جميع الباقات التي قمت بشرائها مع الرصيد المضاف وتاريخ العملية.
+                      </p>
+                    </div>
+                    <Button asChild size="sm">
+                      <Link to="/packages">
+                        <Plus className="ms-1 h-4 w-4" /> شراء باقة
+                      </Link>
+                    </Button>
+                  </div>
+
+                  {purchasesLoading ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      جاري تحميل سجل المشتريات...
+                    </p>
+                  ) : purchases.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border p-8 text-center">
+                      <ShoppingBag className="mx-auto h-10 w-10 text-muted-foreground/60" />
+                      <p className="mt-3 text-base font-semibold text-foreground">
+                        لا توجد مشتريات سابقة
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        لم تقم بشراء باقات حتى الآن. كل باقة تمنحك ألعاباً فورية تضاف إلى رصيدك.
+                      </p>
+                      <Button asChild size="sm" className="mt-4">
+                        <Link to="/packages">
+                          <Plus className="ms-1 h-4 w-4" /> تصفح الباقات
+                        </Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border rounded-2xl border border-border bg-surface-1 overflow-hidden">
+                      {purchases.map((p: PurchaseRecord) => {
+                        const isCompleted = p.status === "completed";
+                        const isPending = p.status === "pending";
+                        const pkgName = p.packages?.name || "باقة قدّ التحدي";
+                        const dateStr = new Date(p.created_at).toLocaleDateString("ar-JO", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 hover:bg-surface-2/40 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                                <PackageCheck className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-sm text-foreground">{pkgName}</p>
+                                <p className="text-xs text-muted-foreground">{dateStr}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                              <div className="text-start sm:text-end">
+                                <p className="text-sm font-bold text-success">
+                                  +{p.credits} {p.credits > 1 ? "ألعاب" : "لعبة"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {p.amount} {p.currency}
+                                </p>
+                              </div>
+
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                  isCompleted
+                                    ? "bg-success/15 text-success"
+                                    : isPending
+                                      ? "bg-warning/15 text-warning"
+                                      : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {isCompleted ? "مؤكد ومضاف" : isPending ? "قيد المزامنة" : p.status}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
               <TabsContent value="pw">
-                <form className="mt-5 max-w-sm space-y-4" onSubmit={changePassword}>
-                  <div>
-                    <Label htmlFor="cpw">كلمة المرور الحالية</Label>
-                    <Input id="cpw" type="password" required value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
+                {profile?.email ? (
+                  <form className="mt-5 max-w-sm space-y-4" onSubmit={changePassword}>
+                    <div>
+                      <Label htmlFor="cpw">كلمة المرور الحالية</Label>
+                      <Input
+                        id="cpw"
+                        type="password"
+                        required
+                        value={pw.current}
+                        onChange={(e) => setPw({ ...pw, current: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="npw">كلمة المرور الجديدة</Label>
+                      <Input
+                        id="npw"
+                        type="password"
+                        required
+                        minLength={6}
+                        value={pw.next}
+                        onChange={(e) => setPw({ ...pw, next: e.target.value })}
+                      />
+                    </div>
+                    <Button type="submit">تحديث كلمة المرور</Button>
+                  </form>
+                ) : (
+                  <div className="mt-5 rounded-2xl bg-surface-2 p-5 text-sm text-muted-foreground">
+                    <p className="font-semibold text-foreground">
+                      تسجيل الدخول عبر رمز التحقق (OTP)
+                    </p>
+                    <p className="mt-1">
+                      حسابك موثّق ومحمي برقم هاتفك أو عبر Google، ويتم الدخول مباشرة دون الحاجة
+                      لكلمة مرور.
+                    </p>
                   </div>
-                  <div>
-                    <Label htmlFor="npw">كلمة المرور الجديدة</Label>
-                    <Input id="npw" type="password" required minLength={6} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
-                  </div>
-                  <Button type="submit">تحديث كلمة المرور</Button>
-                </form>
+                )}
               </TabsContent>
             </Tabs>
           </section>

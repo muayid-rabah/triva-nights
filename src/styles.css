@@ -54,6 +54,12 @@
 }
 
 :root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --mobile-nav-height: 4.25rem;
+  --mobile-header-height: 3.5rem;
   --radius: 1rem;
   --background: #1A1410;
   --foreground: #F5EDE0;
@@ -141,6 +147,12 @@
     background-position: center, center top;
   }
 
+  @media (max-width: 1024px) {
+    body {
+      background-attachment: scroll, scroll;
+    }
+  }
+
   body::before {
     content: "";
     position: fixed;
@@ -157,6 +169,23 @@
     background-position: left 12px top 8px, right 12px top 8px, left 9px top, right 9px top;
     background-repeat: repeat-y, repeat-y, repeat-y, repeat-y;
     mask-image: linear-gradient(90deg, #000 0 6rem, transparent 10rem calc(100% - 10rem), #000 calc(100% - 6rem));
+  }
+
+  @media (max-width: 1024px) {
+    body::before {
+      opacity: .45;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   h1,
@@ -665,3 +694,27 @@ blockquote::before { content: "“"; position: absolute; inset-inline-start: 1re
 .mafia-play { background: radial-gradient(circle at 50% 0, rgb(119 20 35 / .25), transparent 48%), linear-gradient(145deg, #1c1619, #101011); }.mafia-role-card { display: grid; gap: .6rem; border: 1px solid rgb(201 168 92 / .7); border-radius: 1.5rem; padding: 2.4rem 1.5rem; background: linear-gradient(145deg, #27161c, #100f10); box-shadow: inset 0 0 0 7px rgb(201 168 92 / .07), inset 0 1px 0 rgb(245 237 224 / .14); }.mafia-role-card svg { margin: auto; color: #B11E33; }.mafia-role-card small { color: #a99a86; }.mafia-role-card h1 { color: #C9A85C; font-size: 3rem; }.mafia-role-card p { color: #cfc2b0; }
 @media (max-width: 640px) { .game-launcher-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 390px; }.game-launcher { min-height: 112px; }.game-launcher small { font-size: .58rem; }.arcade-card { min-height: 300px; padding: 1.5rem; }.arcade-card-icon { left: 1.5rem; top: 1.5rem; width: 3.5rem; height: 3.5rem; }.huroof-play { grid-template-columns: 1fr; }.huroof-side { grid-template-columns: 1fr auto auto; align-items: center; }.huroof-side > span { grid-column: span 3; }.huroof-side > svg { margin: 0; }.score-hex { min-width: 110px; }.huroof-board-wrap { padding: 1rem; }.huroof-board { gap: .28rem; }.huroof-word { justify-content: center; text-align: center; }.games-menu { display: none; } }
 @media (max-width: 640px) { .huroof-topbar { grid-template-columns: 1fr 1fr; }.huroof-topbar > div:not(.huroof-score) { grid-column: 1 / -1; grid-row: 1; }.huroof-topbar .huroof-score { grid-row: 2; }.huroof-board-shell { min-height: 390px; border-radius: 1.35rem; padding: 3.4rem 2.25rem; }.huroof-new-grid { --hex-size: clamp(2.35rem, calc(42vw / var(--huroof-size)), 4rem); }.huroof-edge-top, .huroof-edge-bottom { right: 12%; left: 12%; }.huroof-actionbar { align-items: stretch; flex-direction: column; text-align: center; }.huroof-question-actions > * { flex: 1 1 42%; } .auction-bid-controls > * { flex: 1 1 28%; }.auction-bid-controls input { flex-basis: 42%; width: auto; } }
+
+/* Mobile App Shell, Safe Area & Bottom Navigation Support */
+.pt-safe {
+  padding-top: var(--safe-area-top);
+}
+.pb-safe {
+  padding-bottom: var(--safe-area-bottom);
+}
+.pb-mobile-nav {
+  padding-bottom: calc(var(--mobile-nav-height) + var(--safe-area-bottom));
+}
+@media (min-width: 1024px) {
+  .pb-mobile-nav {
+    padding-bottom: 0px !important;
+  }
+}
+
+body:has([data-game-stage="play"]) nav[aria-label="شريط التنقل السفلي"] {
+  display: none !important;
+}
+body:has([data-game-stage="play"]) .pb-mobile-nav {
+  padding-bottom: 0px !important;
+}
+
