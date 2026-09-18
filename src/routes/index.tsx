@@ -62,14 +62,36 @@ const HELP_ICONS: Record<HelpKey, typeof Hand> = {
   call: Phone,
 };
 
-const GAME_MARKS = { taqha: Target, huroof: Type, outsider: Search, mafia: Skull, auction: Gavel, "auction-billion": Trophy } satisfies Record<ArcadeGameSlug, typeof Target>;
+const GAME_MARKS = {
+  taqha: Target,
+  huroof: Type,
+  outsider: Search,
+  mafia: Skull,
+  auction: Gavel,
+  "auction-billion": Trophy,
+} satisfies Record<ArcadeGameSlug, typeof Target>;
 
 const FAQ = [
-  { q: "كيف أنشئ لعبة؟", a: "ادخل على صفحة إنشاء لعبة، اختر ٦ فئات، سمِّ الفريقين، واضغط ابدأ اللعب." },
-  { q: "هل أقدر أجرب اللعبة قبل الشراء؟", a: "أكيد، كل مستخدم جديد عنده لعبة تجريبية مجانية كاملة." },
-  { q: "هل تتكرر الأسئلة؟", a: "نحرص على تنويع الأسئلة، ومكتبة الفئات تتوسع بشكل دوري بأسئلة جديدة." },
-  { q: "إذا وقفت اللعبة ورجعت لها لاحقاً؟", a: "اللعبة تنحفظ في المتصفح وتقدر تكمل من نفس النقطة." },
-  { q: "كم نقطة لكل سؤال؟", a: "كل فئة فيها ٦ أسئلة بنقاط من ١٠٠ إلى ٦٠٠، وكل ما زادت النقاط صعب السؤال." },
+  {
+    q: "كيف أنشئ لعبة؟",
+    a: "ادخل على صفحة إنشاء لعبة، اختر ٦ فئات، سمِّ الفريقين، واضغط ابدأ اللعب.",
+  },
+  {
+    q: "هل أقدر أجرب اللعبة قبل الشراء؟",
+    a: "أكيد، كل مستخدم جديد عنده لعبة تجريبية مجانية كاملة.",
+  },
+  {
+    q: "هل تتكرر الأسئلة؟",
+    a: "نحرص على تنويع الأسئلة، ومكتبة الفئات تتوسع بشكل دوري بأسئلة جديدة.",
+  },
+  {
+    q: "إذا وقفت اللعبة ورجعت لها لاحقاً؟",
+    a: "اللعبة تنحفظ في المتصفح وتقدر تكمل من نفس النقطة.",
+  },
+  {
+    q: "كم نقطة لكل سؤال؟",
+    a: "كل فئة فيها ٦ أسئلة بنقاط من ١٠٠ إلى ٦٠٠، وكل ما زادت النقاط صعب السؤال.",
+  },
   { q: "قديش الوقت للسؤال؟", a: "معكم ٢٠ ثانية، وبإمكانكم توقفوا الوقت بوسيلة خذوا نفس." },
 ];
 
@@ -87,7 +109,11 @@ function HomePage() {
   const { data: comments = [] } = useQuery({
     queryKey: ["public-comments"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("comments").select("*").order("created_at", { ascending: false }).limit(6);
+      const { data, error } = await supabase
+        .from("comments")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(6);
       // Fresh Supabase projects may not have the optional community migration
       // applied yet. The home page must still render normally in that state.
       if (error) return [];
@@ -102,7 +128,16 @@ function HomePage() {
     const { error } = await supabase.rpc("submit_comment", { p_body: comment });
     setSendingComment(false);
     if (error) {
-      toast.error(error.message.includes("COMMENT_BLOCKED") ? "خلّينا نحافظ على حكي مرتب بالقعدة." : "ما اننشر التعليق", { description: error.message.includes("COMMENT_BLOCKED") ? "عدّل الكلمات وحاول مرة ثانية." : error.message });
+      toast.error(
+        error.message.includes("COMMENT_BLOCKED")
+          ? "خلّينا نحافظ على حكي مرتب بالقعدة."
+          : "ما اننشر التعليق",
+        {
+          description: error.message.includes("COMMENT_BLOCKED")
+            ? "عدّل الكلمات وحاول مرة ثانية."
+            : error.message,
+        },
+      );
       return;
     }
     setComment("");
@@ -127,23 +162,35 @@ function HomePage() {
 
       <main>
         {/* Hero */}
-        <section className="heritage-hero relative overflow-hidden px-4 pb-16 pt-14 text-center">
+        <section className="heritage-hero relative overflow-hidden px-4 pb-10 pt-8 text-center sm:pb-16 sm:pt-14">
           <div className="relative mx-auto max-w-3xl">
             <div className="taqha-hero-title">
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-bold text-primary">لمّة الدار، والتحدّي حاضر ✦</span>
-              <h1 className="mt-5 font-display text-5xl leading-tight text-primary sm:text-7xl">قدّ التحدي!</h1>
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-bold text-primary">
+                لمّة الدار، والتحدّي حاضر ✦
+              </span>
+              <h1 className="mt-5 font-display text-5xl leading-tight text-primary sm:text-7xl">
+                قدّ التحدي!
+              </h1>
               <p className="mt-1 font-display text-2xl text-gold sm:text-3xl">جاهزين للتحدي؟</p>
             </div>
             <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">
-              منصّة القعدة لأربع ألعاب مختلفة: معلومات، حروف، غموض، ومواجهة. اختاروا اللعبة اللي تناسب لمّتكم وابدأوا فوراً.
+              منصّة القعدة لأربع ألعاب مختلفة: معلومات، حروف، غموض، ومواجهة. اختاروا اللعبة اللي
+              تناسب لمّتكم وابدأوا فوراً.
             </p>
 
             <div className="game-launcher-rail mt-9" aria-label="اختاروا لعبة">
               {ARCADE_GAMES.map((game) => {
                 const Icon = GAME_MARKS[game.slug];
                 return (
-                  <Link key={game.slug} to="/arcade" search={{ game: game.slug }} className={`game-launcher game-launcher-${game.accent}`}>
-                    <span className="game-launcher-icon"><Icon /></span>
+                  <Link
+                    key={game.slug}
+                    to="/arcade"
+                    search={{ game: game.slug }}
+                    className={`game-launcher game-launcher-${game.accent}`}
+                  >
+                    <span className="game-launcher-icon">
+                      <Icon />
+                    </span>
                     <strong>{game.name}</strong>
                     <small>{game.tagline}</small>
                   </Link>
@@ -164,32 +211,21 @@ function HomePage() {
           </div>
         </section>
 
-        {/* دليل الألعاب */}
-        <section className="mx-auto max-w-5xl px-4 py-12 text-center">
-          <h2 className="text-3xl">شو بنلعب الليلة؟</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-            كل لعبة إلها طريقتها، لكن الكل يشتغل على نفس القعدة: قواعد قصيرة، أسماء واضحة، وحماس بدون تعقيد.
-          </p>
-          <div className="mx-auto mt-8 grid max-w-7xl gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            {ARCADE_GAMES.map((game) => {
-              const Icon = GAME_MARKS[game.slug];
-              const how = game.slug === "taqha" ? "فريقان يختاران الفئات ويصعدان بلوحة النقاط." : game.slug === "huroof" ? "جاوبوا، خذوا خلية، ووصلوا خط فريقكم أولاً." : game.slug === "outsider" ? "الكل يعرف السر إلا لاعب واحد؛ اكتشفوه قبل ما يهرب." : game.slug === "mafia" ? "ليلة أدوار سرية، نقاش وتصويت حتى يحسم أحد الفريقين." : game.slug === "auction" ? "زايدوا على التحدّي وثبّتوا التزامكم قبل أن ينسحب الخصم." : "لاعبان يبنيان تشكيلة كرة قدم بالمزايدة ضمن ميزانية محددة.";
-              return <Link key={game.slug} to="/arcade" search={{ game: game.slug }} className={`heritage-card card-hover rounded-3xl border border-border bg-card p-5 text-start game-guide-${game.accent}`}>
-                <span className="help-emblem grid h-12 w-12 place-items-center rounded-full bg-surface-2"><Icon className="h-6 w-6 text-gold" /></span>
-                <h3 className="mt-4 text-xl">{game.name}</h3><p className="mt-2 min-h-20 text-sm leading-6 text-muted-foreground">{how}</p>
-                <span className="mt-4 inline-flex items-center text-sm font-bold text-gold">اعرف القواعد والعب <ChevronDown className="me-1 h-4 w-4 -rotate-90" /></span>
-              </Link>;
-            })}
-          </div>
-        </section>
-
         {/* شرح الفئات */}
-        <section className="mx-auto max-w-7xl px-4 py-12">
+        <section className="mx-auto max-w-7xl px-4 py-8 sm:py-12">
           <h2 className="text-center text-3xl">شرح الفئات</h2>
           <p className="mt-3 text-center text-muted-foreground">
             مكتبة فئات واسعة تتوسع باستمرار — من الثقافة العامة للرياضة والأفلام وفئات الأطفال.
           </p>
-          <div ref={railRef} dir="ltr" onMouseEnter={() => setRailPaused(true)} onMouseLeave={() => setRailPaused(false)} onTouchStart={() => setRailPaused(true)} onTouchEnd={() => setRailPaused(false)} className="category-rail mt-8 flex snap-x gap-3 overflow-x-auto pb-4">
+          <div
+            ref={railRef}
+            dir="ltr"
+            onMouseEnter={() => setRailPaused(true)}
+            onMouseLeave={() => setRailPaused(false)}
+            onTouchStart={() => setRailPaused(true)}
+            onTouchEnd={() => setRailPaused(false)}
+            className="category-rail mt-8 flex snap-x gap-3 overflow-x-auto pb-4"
+          >
             {categories.slice(0, 12).map((c) => (
               <div key={c.id} dir="rtl" className="w-40 shrink-0 snap-start">
                 <CategoryCard category={c} />
@@ -208,7 +244,10 @@ function HomePage() {
             {HELPS.map((h) => {
               const Icon = HELP_ICONS[h.key];
               return (
-                <div key={h.key} className="heritage-card card-hover rounded-3xl border border-border bg-card p-5 text-center">
+                <div
+                  key={h.key}
+                  className="heritage-card card-hover rounded-3xl border border-border bg-card p-5 text-center"
+                >
                   <span className="help-emblem mx-auto grid h-14 w-14 place-items-center rounded-full bg-surface-2">
                     <Icon className={`h-7 w-7 ${h.color}`} />
                   </span>
@@ -230,7 +269,11 @@ function HomePage() {
               </p>
             </div>
             <Gift className="h-20 w-20 text-gold" />
-            <Button asChild variant="secondary" className="bg-gold text-gold-foreground hover:bg-gold/90">
+            <Button
+              asChild
+              variant="secondary"
+              className="bg-gold text-gold-foreground hover:bg-gold/90"
+            >
               <Link to="/gifts">قسم الهدايا</Link>
             </Button>
           </div>
@@ -239,25 +282,53 @@ function HomePage() {
         {/* تعليقات القعدة */}
         <section className="mx-auto max-w-5xl px-4 py-12">
           <h2 className="text-center text-3xl">تعليقات القعدة</h2>
-          <p className="mt-2 text-center text-muted-foreground">رأيك مكانه هون — التعليق للحسابات المسجّلة فقط، وفلترنا محافظ على حكي القعدة المرتّب.</p>
+          <p className="mt-2 text-center text-muted-foreground">
+            رأيك مكانه هون — التعليق للحسابات المسجّلة فقط، وفلترنا محافظ على حكي القعدة المرتّب.
+          </p>
           {user ? (
-            <form onSubmit={submitComment} className="heritage-card mx-auto mt-7 max-w-3xl rounded-3xl border border-border bg-card p-4">
-              <Textarea value={comment} onChange={(event) => setComment(event.target.value)} maxLength={320} required minLength={3} placeholder="شو رأيك باللعبة؟ احكيلنا…" className="min-h-24 resize-none" />
+            <form
+              onSubmit={submitComment}
+              className="heritage-card mx-auto mt-7 max-w-3xl rounded-3xl border border-border bg-card p-4"
+            >
+              <Textarea
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+                maxLength={320}
+                required
+                minLength={3}
+                placeholder="شو رأيك باللعبة؟ احكيلنا…"
+                className="min-h-24 resize-none"
+              />
               <div className="mt-3 flex items-center justify-between gap-3">
                 <span className="text-xs text-muted-foreground">{comment.length}/320</span>
-                <Button type="submit" disabled={sendingComment || comment.trim().length < 3}>{sendingComment ? "بننشر تعليقك…" : "انشر تعليقك"}</Button>
+                <Button type="submit" disabled={sendingComment || comment.trim().length < 3}>
+                  {sendingComment ? "بننشر تعليقك…" : "انشر تعليقك"}
+                </Button>
               </div>
             </form>
           ) : (
-            <div className="mt-7 text-center"><Button asChild variant="outline"><Link to="/auth">سجّل دخولك عشان تترك رأيك</Link></Button></div>
+            <div className="mt-7 text-center">
+              <Button asChild variant="outline">
+                <Link to="/auth">سجّل دخولك عشان تترك رأيك</Link>
+              </Button>
+            </div>
           )}
           <div className="mt-7 grid gap-4 md:grid-cols-2">
-            {comments.length ? comments.map((item) => (
-              <article key={item.id} className="heritage-card rounded-3xl border border-border bg-card p-6">
-                <p className="leading-8 text-foreground">“{item.body}”</p>
-                <footer className="mt-4 font-bold text-primary">{item.display_name}</footer>
-              </article>
-            )) : <p className="col-span-full rounded-3xl border border-dashed border-border bg-card/70 p-8 text-center text-muted-foreground">أول تعليق بالقعدة ممكن يكون منك ✦</p>}
+            {comments.length ? (
+              comments.map((item) => (
+                <article
+                  key={item.id}
+                  className="heritage-card rounded-3xl border border-border bg-card p-6"
+                >
+                  <p className="leading-8 text-foreground">“{item.body}”</p>
+                  <footer className="mt-4 font-bold text-primary">{item.display_name}</footer>
+                </article>
+              ))
+            ) : (
+              <p className="col-span-full rounded-3xl border border-dashed border-border bg-card/70 p-8 text-center text-muted-foreground">
+                أول تعليق بالقعدة ممكن يكون منك ✦
+              </p>
+            )}
           </div>
         </section>
 
@@ -266,7 +337,11 @@ function HomePage() {
           <h2 className="text-center text-3xl">الأسئلة الشائعة</h2>
           <Accordion type="single" collapsible className="mt-8">
             {FAQ.map((item) => (
-              <AccordionItem key={item.q} value={item.q} className="rounded-2xl border border-border bg-card px-4">
+              <AccordionItem
+                key={item.q}
+                value={item.q}
+                className="rounded-2xl border border-border bg-card px-4"
+              >
                 <AccordionTrigger className="text-start font-bold">{item.q}</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
               </AccordionItem>

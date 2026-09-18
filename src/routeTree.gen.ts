@@ -17,6 +17,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CreateGameRouteImport } from './routes/create-game'
 import { Route as GamesRouteImport } from './routes/games'
 import { Route as GiftsRouteImport } from './routes/gifts'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PackagesRouteImport } from './routes/packages'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -63,6 +64,11 @@ const GiftsRoute = GiftsRouteImport.update({
   path: '/gifts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PackagesRoute = PackagesRouteImport.update({
   id: '/packages',
   path: '/packages',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/create-game': typeof CreateGameRoute
   '/games': typeof GamesRoute
   '/gifts': typeof GiftsRoute
+  '/onboarding': typeof OnboardingRoute
   '/packages': typeof PackagesRoute
   '/play': typeof PlayRoute
   '/privacy': typeof PrivacyRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/create-game': typeof CreateGameRoute
   '/games': typeof GamesRoute
   '/gifts': typeof GiftsRoute
+  '/onboarding': typeof OnboardingRoute
   '/packages': typeof PackagesRoute
   '/play': typeof PlayRoute
   '/privacy': typeof PrivacyRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/create-game': typeof CreateGameRoute
   '/games': typeof GamesRoute
   '/gifts': typeof GiftsRoute
+  '/onboarding': typeof OnboardingRoute
   '/packages': typeof PackagesRoute
   '/play': typeof PlayRoute
   '/privacy': typeof PrivacyRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/create-game'
     | '/games'
     | '/gifts'
+    | '/onboarding'
     | '/packages'
     | '/play'
     | '/privacy'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/create-game'
     | '/games'
     | '/gifts'
+    | '/onboarding'
     | '/packages'
     | '/play'
     | '/privacy'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/create-game'
     | '/games'
     | '/gifts'
+    | '/onboarding'
     | '/packages'
     | '/play'
     | '/privacy'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   CreateGameRoute: typeof CreateGameRoute
   GamesRoute: typeof GamesRoute
   GiftsRoute: typeof GiftsRoute
+  OnboardingRoute: typeof OnboardingRoute
   PackagesRoute: typeof PackagesRoute
   PlayRoute: typeof PlayRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/gifts'
       fullPath: '/gifts'
       preLoaderRoute: typeof GiftsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/packages': {
@@ -330,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateGameRoute: CreateGameRoute,
   GamesRoute: GamesRoute,
   GiftsRoute: GiftsRoute,
+  OnboardingRoute: OnboardingRoute,
   PackagesRoute: PackagesRoute,
   PlayRoute: PlayRoute,
   PrivacyRoute: PrivacyRoute,
