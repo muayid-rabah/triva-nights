@@ -53,6 +53,7 @@ import {
   getSupabaseAdminClient,
   type PaddleEventLike,
 } from "./lib/server-payment-service";
+import { processAccountDeletion } from "./lib/server-account-service";
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
@@ -245,6 +246,55 @@ export default {
           status: 500,
           headers: { "Content-Type": "application/json" },
         });
+      }
+    }
+
+    // 5. Secure Server-Side Account Deletion Handler (Google Play Compliance)
+    if (url.pathname === "/api/account/delete") {
+      if (request.method !== "POST") {
+        return new Response("Method Not Allowed", { status: 405 });
+      }
+
+      const authHeader = request.headers.get("Authorization");
+      const token = authHeader?.replace(/^Bearer\s+/i, "");
+      if (!token) {
+        return new Response(JSON.stringify({ error: "Unauthorized: Missing auth token" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      try {
+        const supabaseAdmin = getSupabaseAdminClient();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabaseAdmin.auth.getUser(token);
+
+        if (authError || !user) {
+          return new Response(JSON.stringify({ error: "Unauthorized: Invalid session" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        // Strictly derive user identity from authenticated token
+        const result = await processAccountDeletion({ userId: user.id });
+
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[Account Deletion] Error:", message);
+        return new Response(
+          JSON.stringify({ error: "تعذر إتمام طلب حذف الحساب حالياً. يرجى المحاولة لاحقاً." }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
       }
     }
 

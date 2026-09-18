@@ -15,6 +15,7 @@ import { Route as ArcadeRouteImport } from './routes/arcade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CreateGameRouteImport } from './routes/create-game'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as GamesRouteImport } from './routes/games'
 import { Route as GiftsRouteImport } from './routes/gifts'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -52,6 +53,11 @@ const ContactRoute = ContactRouteImport.update({
 const CreateGameRoute = CreateGameRouteImport.update({
   id: '/create-game',
   path: '/create-game',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesRoute = GamesRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/create-game': typeof CreateGameRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/games': typeof GamesRoute
   '/gifts': typeof GiftsRoute
   '/onboarding': typeof OnboardingRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/create-game': typeof CreateGameRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/games': typeof GamesRoute
   '/gifts': typeof GiftsRoute
   '/onboarding': typeof OnboardingRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/create-game': typeof CreateGameRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/games': typeof GamesRoute
   '/gifts': typeof GiftsRoute
   '/onboarding': typeof OnboardingRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/create-game'
+    | '/delete-account'
     | '/games'
     | '/gifts'
     | '/onboarding'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/create-game'
+    | '/delete-account'
     | '/games'
     | '/gifts'
     | '/onboarding'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/create-game'
+    | '/delete-account'
     | '/games'
     | '/gifts'
     | '/onboarding'
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   CreateGameRoute: typeof CreateGameRoute
+  DeleteAccountRoute: typeof DeleteAccountRoute
   GamesRoute: typeof GamesRoute
   GiftsRoute: typeof GiftsRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/create-game'
       fullPath: '/create-game'
       preLoaderRoute: typeof CreateGameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games': {
@@ -348,6 +368,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   CreateGameRoute: CreateGameRoute,
+  DeleteAccountRoute: DeleteAccountRoute,
   GamesRoute: GamesRoute,
   GiftsRoute: GiftsRoute,
   OnboardingRoute: OnboardingRoute,
