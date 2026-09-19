@@ -62,7 +62,12 @@ CREATE POLICY "room_players_delete_policy" ON public.room_players
   FOR DELETE TO authenticated
   USING (
     user_id = auth.uid()
-    OR public.is_room_member(room_id)
+    OR EXISTS (
+      SELECT 1
+      FROM public.rooms r
+      WHERE r.id = room_players.room_id
+        AND r.host_id = auth.uid()
+    )
   );
 
 -- Step 4: Canonical Secure RPC: get_multiplayer_room_state
