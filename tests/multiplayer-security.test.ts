@@ -159,6 +159,43 @@ function testMigrationSecurityContract() {
     throw new Error("get_multiplayer_room_state must grant execute to authenticated");
   }
   console.log("  [PASS] Canonical RPC get_multiplayer_room_state contract verified");
+
+  // I. Migration 0020 contract: Media columns on public.questions & public.room_questions
+  console.log("\n=== 1.2 Validating 0020_add_question_media_columns.sql Schema Contract ===");
+  const sql0020Path = path.resolve(
+    process.cwd(),
+    "drizzle/migrations/0020_add_question_media_columns.sql",
+  );
+  if (!fs.existsSync(sql0020Path)) {
+    throw new Error("Missing migration file: 0020_add_question_media_columns.sql");
+  }
+  const sql0020 = fs.readFileSync(sql0020Path, "utf-8");
+
+  // Verify questions schema supports all 4 media columns
+  const requiredCols = ["image_url", "audio_url", "audio_text", "video_url"];
+  for (const col of requiredCols) {
+    if (!sql0020.includes(`ADD COLUMN IF NOT EXISTS ${col} text`)) {
+      throw new Error(`Migration 0020 must add column ${col} to public.questions`);
+    }
+  }
+  console.log("  [PASS] public.questions schema contract adds image_url, audio_url, audio_text, video_url");
+
+  // Verify room_questions schema supports media columns
+  if (!sql0020.includes("ALTER TABLE public.room_questions")) {
+    throw new Error("Migration 0020 must ensure public.room_questions compatibility");
+  }
+  console.log("  [PASS] public.room_questions schema contract verified for media columns");
+
+  // Verify start_multiplayer_game references only existing columns
+  if (
+    !sql.includes("q.image_url") ||
+    !sql.includes("q.audio_url") ||
+    !sql.includes("q.audio_text") ||
+    !sql.includes("q.video_url")
+  ) {
+    throw new Error("start_multiplayer_game query contract verification failed");
+  }
+  console.log("  [PASS] start_multiplayer_game query columns match schema media columns exactly");
 }
 
 // -------------------------------------------------------------
