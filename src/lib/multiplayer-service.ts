@@ -160,6 +160,30 @@ export async function startRoom(
 }
 
 /**
+ * Starts a server-authoritative arcade game session (Huroof, Auction, Billion Auction).
+ */
+export async function startArcadeRoom(
+  roomId: string,
+  config: Record<string, unknown> = {},
+): Promise<{ data: MultiplayerRoomState | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.rpc("start_arcade_multiplayer_game", {
+      p_room_id: roomId,
+      p_config: config,
+    });
+
+    if (error) {
+      return { data: null, error: parseRpcError(error) };
+    }
+
+    return { data: data as unknown as MultiplayerRoomState, error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "تعذر بدء اللعبة";
+    return { data: null, error: parseRpcError({ message }) };
+  }
+}
+
+/**
  * Submits an atomic, server-validated multiplayer game action.
  */
 export async function submitMultiplayerAction(
@@ -169,6 +193,32 @@ export async function submitMultiplayerAction(
 ): Promise<{ data: MultiplayerRoomState | null; error: string | null }> {
   try {
     const { data, error } = await supabase.rpc("submit_multiplayer_action", {
+      p_room_id: roomId,
+      p_action: action,
+      p_payload: payload,
+    });
+
+    if (error) {
+      return { data: null, error: parseRpcError(error) };
+    }
+
+    return { data: data as unknown as MultiplayerRoomState, error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "تعذر تنفيذ الإجراء";
+    return { data: null, error: parseRpcError({ message }) };
+  }
+}
+
+/**
+ * Submits an arcade game action (Huroof, Auction, Billion Auction) to the server.
+ */
+export async function submitArcadeAction(
+  roomId: string,
+  action: string,
+  payload: Record<string, unknown> = {},
+): Promise<{ data: MultiplayerRoomState | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.rpc("submit_arcade_multiplayer_action", {
       p_room_id: roomId,
       p_action: action,
       p_payload: payload,

@@ -6,6 +6,7 @@ import {
   Loader2,
   Monitor,
   Share2,
+  Sliders,
   Smartphone,
   Users,
   UsersRound,
@@ -22,6 +23,7 @@ import {
   joinRoom,
   leaveRoom,
   startRoom as apiStartRoom,
+  startArcadeRoom,
   subscribeToRoom,
   type MultiplayerRoomState,
 } from "@/lib/multiplayer-service";
@@ -47,6 +49,12 @@ export function GameRoomFlow({ game, onStart, initialCode = "" }: GameRoomFlowPr
   const [playerName, setPlayerName] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Arcade Game Config States (Host Configuration)
+  const [huroofSize, setHuroofSize] = useState<4 | 5 | 6>(5);
+  const [huroofRounds, setHuroofRounds] = useState<1 | 2 | 3>(1);
+  const [auctionRounds, setAuctionRounds] = useState<1 | 3 | 5>(3);
+  const [billionBudget, setBillionBudget] = useState<100 | 200>(200);
 
   // Preload user's profile display name
   useEffect(() => {
@@ -149,34 +157,50 @@ export function GameRoomFlow({ game, onStart, initialCode = "" }: GameRoomFlowPr
     toast.success("تم الانضمام للغرفة بنجاح!");
   }
 
-  // Action: Host starts game (Server-authoritative: sends only category slugs, no client session trusted)
+  // Action: Host starts game (Server-authoritative)
   async function handleStartByHost() {
     if (!roomState) return;
     setLoading(true);
     try {
-      let categorySlugs: string[] | undefined;
+      let resultData: MultiplayerRoomState | null = null;
+      let resultError: string | null = null;
 
       if (game.slug === "taqha") {
         const categories = await fetchCategories();
         const chosen = categories.slice(0, 6);
-        categorySlugs = chosen.map((c) => c.slug || c.id);
+        const categorySlugs = chosen.map((c) => c.slug || c.id);
+        const res = await apiStartRoom(roomState.room.id, categorySlugs);
+        resultData = res.data;
+        resultError = res.error;
+      } else {
+        const arcadeConfig: Record<string, unknown> = {};
+        if (game.slug === "huroof") {
+          arcadeConfig.size = huroofSize;
+          arcadeConfig.rounds = huroofRounds;
+        } else if (game.slug === "auction") {
+          arcadeConfig.rounds = auctionRounds;
+        } else if (game.slug === "auction-billion") {
+          arcadeConfig.budget = billionBudget;
+        }
+        const res = await startArcadeRoom(roomState.room.id, arcadeConfig);
+        resultData = res.data;
+        resultError = res.error;
       }
 
-      const { data, error } = await apiStartRoom(roomState.room.id, categorySlugs);
       setLoading(false);
 
-      if (error || !data) {
-        toast.error(error || "تعذر بدء اللعبة");
+      if (resultError || !resultData) {
+        toast.error(resultError || "تعذر بدء اللعبة");
         return;
       }
 
       toast.success("انطلقت اللعبة!");
       if (game.slug === "taqha") {
-        navigate({ to: "/play", search: { room: data.room.code } });
+        navigate({ to: "/play", search: { room: resultData.room.code } });
         return;
       }
-      const playerNames = data.players.map((p) => p.player_name);
-      onStart("online", playerNames, data);
+      const playerNames = resultData.players.map((p) => p.player_name);
+      onStart("online", playerNames, resultData);
     } catch {
       setLoading(false);
       toast.error("حدث خطأ أثناء تجهيز اللعبة");
@@ -320,6 +344,104 @@ export function GameRoomFlow({ game, onStart, initialCode = "" }: GameRoomFlowPr
           </div>
         </div>
 
+        {/* Host Game Settings (for arcade games) */}
+        {game.slug !== "taqha" && (
+          <div className="mx-auto mt-6 max-w-md rounded-2xl border border-border/80 bg-background/50 p-4 text-start">
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground mb-3">
+              <Sliders className="h-4 w-4 text-gold" />
+              <span>إعدادات اللعبة (المضيف فقط)</span>
+            </div>
+
+            {game.slug === "huroof" && (
+              <div className="space-y-3 text-xs">
+                <div>
+                  <span className="font-bold text-foreground block mb-1.5">حجم الشبكة</span>
+                  <div className="flex gap-2">
+                    {([4, 5, 6] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setHuroofSize(s)}
+                        className={`flex-1 py-1.5 rounded-lg border font-bold text-xs transition-colors ${
+                          huroofSize === s
+                            ? "border-gold bg-gold/15 text-gold"
+                            : "border-border/60 bg-surface-2/40 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {s} × {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="font-bold text-foreground block mb-1.5">الجولات للفوز</span>
+                  <div className="flex gap-2">
+                    {([1, 2, 3] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setHuroofRounds(r)}
+                        className={`flex-1 py-1.5 rounded-lg border font-bold text-xs transition-colors ${
+                          huroofRounds === r
+                            ? "border-gold bg-gold/15 text-gold"
+                            : "border-border/60 bg-surface-2/40 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {r} {r === 1 ? "جولة" : "جولات"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {game.slug === "auction" && (
+              <div className="text-xs">
+                <span className="font-bold text-foreground block mb-1.5">عدد الجولات</span>
+                <div className="flex gap-2">
+                  {([1, 3, 5] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setAuctionRounds(r)}
+                      className={`flex-1 py-1.5 rounded-lg border font-bold text-xs transition-colors ${
+                        auctionRounds === r
+                          ? "border-gold bg-gold/15 text-gold"
+                          : "border-border/60 bg-surface-2/40 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {r} {r === 1 ? "جولة" : "جولات"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {game.slug === "auction-billion" && (
+              <div className="text-xs">
+                <span className="font-bold text-foreground block mb-1.5">ميزانية كل لاعب</span>
+                <div className="flex gap-2">
+                  {([100, 200] as const).map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => setBillionBudget(b)}
+                      className={`flex-1 py-1.5 rounded-lg border font-bold text-xs transition-colors ${
+                        billionBudget === b
+                          ? "border-gold bg-gold/15 text-gold"
+                          : "border-border/60 bg-surface-2/40 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {b}M مليون
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Start Button */}
         <div className="mt-6 flex flex-col items-center gap-3">
           <Button
@@ -405,7 +527,7 @@ export function GameRoomFlow({ game, onStart, initialCode = "" }: GameRoomFlowPr
         <div className="mx-auto mt-6 max-w-md rounded-2xl border border-gold/30 bg-gold/5 p-4 flex items-center justify-center gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-gold shrink-0" />
           <p className="text-sm font-bold text-gold">
-            بانتظار إشارة البدء من المضيف... ستفتح شاشة اللعب تلقائياً فوراً!
+            المضيف يجهز إعدادات اللعبة وسيبدأ التحدي... ستفتح شاشة اللعب تلقائياً فوراً!
           </p>
         </div>
 
@@ -624,25 +746,45 @@ export function GameRoomFlow({ game, onStart, initialCode = "" }: GameRoomFlowPr
         </button>
 
         {/* Mode 2: Realtime Multiplayer (Strictly 2 players) */}
-        <button
-          type="button"
-          onClick={() => setView("choose_action")}
-          className="group relative flex flex-col items-center rounded-2xl border-2 border-primary/60 bg-primary/5 p-6 text-center transition-all hover:border-primary hover:bg-primary/10 hover:scale-[1.02] shadow-lg"
-        >
-          <div className="absolute -top-3 start-1/2 -translate-x-1/2 rounded-full border border-primary/40 bg-primary px-2.5 py-0.5 text-[10px] font-black text-primary-foreground">
-            تحدي ثنائي مباشر
+        {game.slug === "outsider" || game.slug === "mafia" ? (
+          <div
+            className="relative flex flex-col items-center rounded-2xl border border-border/60 bg-surface-2/40 p-6 text-center opacity-75 select-none"
+          >
+            <div className="absolute -top-3 start-1/2 -translate-x-1/2 rounded-full border border-gold/40 bg-gold/15 px-2.5 py-0.5 text-[10px] font-black text-gold">
+              قريباً لـ ٥+ لاعبين
+            </div>
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-surface-2 text-muted-foreground shadow-sm">
+              <Smartphone className="h-6 w-6" />
+            </div>
+            <h2 className="mt-4 text-lg font-black text-foreground/80">كل واحد على جواله</h2>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+              هذه اللعبة مخصصة للمجموعات (٥+ لاعبين) وتعمل حالياً بنمط الجهاز الواحد فقط. طور الجوالات المتعددة قادم قريباً!
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-muted-foreground">
+              غير متاح للتحدي الثنائي 1v1
+            </span>
           </div>
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/20 text-primary shadow-md">
-            <Smartphone className="h-6 w-6" />
-          </div>
-          <h2 className="mt-4 text-lg font-black text-foreground">كل واحد على جواله</h2>
-          <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-            لاعب ضد لاعب (1 vs 1) بكود مباشر ومزامنة لحظية للأسئلة والنقاط والأدوار.
-          </p>
-          <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-primary">
-            إنشاء أو انضمام لغرفة &larr;
-          </span>
-        </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setView("choose_action")}
+            className="group relative flex flex-col items-center rounded-2xl border-2 border-primary/60 bg-primary/5 p-6 text-center transition-all hover:border-primary hover:bg-primary/10 hover:scale-[1.02] shadow-lg"
+          >
+            <div className="absolute -top-3 start-1/2 -translate-x-1/2 rounded-full border border-primary/40 bg-primary px-2.5 py-0.5 text-[10px] font-black text-primary-foreground">
+              تحدي ثنائي مباشر
+            </div>
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/20 text-primary shadow-md">
+              <Smartphone className="h-6 w-6" />
+            </div>
+            <h2 className="mt-4 text-lg font-black text-foreground">كل واحد على جواله</h2>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+              لاعب ضد لاعب (1 vs 1) بكود مباشر ومزامنة لحظية للأسئلة والنقاط والأدوار.
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-primary">
+              إنشاء أو انضمام لغرفة &larr;
+            </span>
+          </button>
+        )}
       </div>
     </section>
   );

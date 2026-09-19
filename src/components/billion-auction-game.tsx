@@ -32,11 +32,11 @@ function makePairs(pool = "all"): Pair[] {
   });
 }
 
-function labelRole(role: Exclude<BillionRole, "COACH">) {
+export function labelRole(role: Exclude<BillionRole, "COACH">) {
   return ({ GK: "حارس", DEF: "دفاع", MID: "وسط", ATT: "هجوم" })[role];
 }
 
-function PlayerCard({ player, hidden = false }: { player?: BillionAuctionPlayer; hidden?: boolean }) {
+export function PlayerCard({ player, hidden = false }: { player?: BillionAuctionPlayer; hidden?: boolean }) {
   if (hidden) return <article className="billion-v2-card is-hidden"><EyeOff /><strong>بطاقة مخفية</strong><small>نفس مركز اللاعب المعروض</small></article>;
   if (!player) return <article className="billion-v2-card is-empty"><strong>+</strong><small>خانة فارغة</small></article>;
   const initials = player.name.split(" ").slice(0, 2).map((part) => part[0]).join("");
@@ -46,7 +46,7 @@ function PlayerCard({ player, hidden = false }: { player?: BillionAuctionPlayer;
   </article>;
 }
 
-function MiniPitch({ name, budget, squad, side }: { name: string; budget: number; squad: BillionAuctionPlayer[]; side: TeamIndex }) {
+export function MiniPitch({ name, budget, squad, side }: { name: string; budget: number; squad: BillionAuctionPlayer[]; side: TeamIndex }) {
   const byRole = (role: Exclude<BillionRole, "COACH">) => squad.filter((player) => player.role === role);
   return <article className={`billion-v2-pitch side-${side}`}>
     <header><div><h2>{name}</h2><span>{squad.length}/7 لاعبين</span></div><strong>{budget}M</strong></header>
