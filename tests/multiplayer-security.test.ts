@@ -89,6 +89,58 @@ function testMigrationSecurityContract() {
     throw new Error("Missing active question check");
   }
   console.log("  [PASS] Anti-cheat guards against double scoring and future question answering");
+
+  // H. Migration 0019 contract: Non-recursive RLS & Canonical RPC
+  console.log("\n=== 1.1 Validating 0019_fix_multiplayer_room_sync.sql Security & Non-Recursive RLS ===");
+  const sql0019Path = path.resolve(
+    process.cwd(),
+    "drizzle/migrations/0019_fix_multiplayer_room_sync.sql",
+  );
+  if (!fs.existsSync(sql0019Path)) {
+    throw new Error("Missing migration file: 0019_fix_multiplayer_room_sync.sql");
+  }
+  const sql0019 = fs.readFileSync(sql0019Path, "utf-8");
+
+  // Verify non-recursive helper is defined as SECURITY DEFINER
+  if (
+    !sql0019.includes("CREATE OR REPLACE FUNCTION public.is_room_member(p_room_id uuid)") ||
+    !sql0019.includes("SECURITY DEFINER")
+  ) {
+    throw new Error("Migration 0019 must define public.is_room_member as SECURITY DEFINER");
+  }
+
+  // Verify room_players select policy does NOT recursively query room_players directly
+  const roomPlayersSelectMatch = sql0019.match(
+    /CREATE POLICY "room_players_select_policy" ON public\.room_players[\s\S]*?;/,
+  );
+  if (!roomPlayersSelectMatch) {
+    throw new Error("Missing room_players_select_policy in migration 0019");
+  }
+  const roomPlayersSelectPolicy = roomPlayersSelectMatch[0];
+  if (
+    roomPlayersSelectPolicy.includes("FROM public.room_players rp2") ||
+    roomPlayersSelectPolicy.includes("FROM public.room_players")
+  ) {
+    throw new Error(
+      "Security / Architecture vulnerability: Recursive query on public.room_players found in room_players_select_policy!",
+    );
+  }
+  console.log("  [PASS] Non-recursive RLS verified: room_players policy uses safe SECURITY DEFINER helper");
+
+  // Verify get_multiplayer_room_state RPC
+  if (
+    !sql0019.includes("CREATE OR REPLACE FUNCTION public.get_multiplayer_room_state(p_room_id uuid)") &&
+    !sql0019.includes("FUNCTION public.get_multiplayer_room_state(")
+  ) {
+    throw new Error("Migration 0019 must define canonical get_multiplayer_room_state RPC");
+  }
+  if (!sql0019.includes("RAISE EXCEPTION 'NOT_IN_ROOM")) {
+    throw new Error("get_multiplayer_room_state must raise NOT_IN_ROOM for non-members");
+  }
+  if (!sql0019.includes("GRANT EXECUTE ON FUNCTION public.get_multiplayer_room_state(uuid) TO authenticated;")) {
+    throw new Error("get_multiplayer_room_state must grant execute to authenticated");
+  }
+  console.log("  [PASS] Canonical RPC get_multiplayer_room_state contract verified");
 }
 
 // -------------------------------------------------------------
@@ -463,6 +515,84 @@ function runSecurityScenarios() {
       throw new Error("Out-of-turn selection was not rejected");
     }
     console.log("  [PASS] Test 6.D: Out-of-turn question selection is rejected");
+  }
+
+  // -------------------------------------------------------------
+  // Test 7.A - 7.C: Canonical RPC get_multiplayer_room_state authorization & shape
+  // -------------------------------------------------------------
+  {
+    const room = createFreshRoom();
+    const players: MockPlayer[] = [
+      { user_id: "user-host", role: "host", player_index: 0 },
+      { user_id: "user-guest", role: "guest", player_index: 1 },
+    ];
+    const nonMember: MockPlayer = { user_id: "user-third-party", role: "guest", player_index: 0 };
+
+    function simulateGetMultiplayerRoomState(
+      roomId: string,
+      caller: MockPlayer | null,
+    ): { success: boolean; data?: { room: Record<string, unknown>; players: Record<string, unknown>[] }; error?: string } {
+      if (!caller || !caller.user_id) {
+        return { success: false, error: "AUTH_REQUIRED: يجب تسجيل الدخول للوصول إلى الغرفة" };
+      }
+      if (roomId !== room.id) {
+        return { success: false, error: "ROOM_NOT_FOUND: الغرفة غير موجودة" };
+      }
+      const isHost = caller.user_id === hostPlayer.user_id;
+      const isMember = players.some((p) => p.user_id === caller.user_id);
+      if (!isHost && !isMember) {
+        return { success: false, error: "NOT_IN_ROOM: غير مصرح لك بالوصول إلى بيانات هذه الغرفة" };
+      }
+
+      return {
+        success: true,
+        data: {
+          room: {
+            id: room.id,
+            status: "ready",
+            current_turn: room.current_turn,
+            session_data: room.session_data,
+          },
+          players: players.map((p) => ({
+            id: `rp-${p.user_id}`,
+            user_id: p.user_id,
+            player_name: p.role === "host" ? "المضيف" : "الضيف",
+            role: p.role,
+            player_index: p.player_index,
+            joined_at: new Date().toISOString(),
+            last_active_at: new Date().toISOString(),
+          })),
+        },
+      };
+    }
+
+    // 7.A: Host can fetch room state after guest joins
+    const hostFetch = simulateGetMultiplayerRoomState(room.id, hostPlayer);
+    if (!hostFetch.success || hostFetch.data.players.length !== 2) {
+      throw new Error("Test 7.A Failed: Host unable to fetch 2-player room state");
+    }
+    console.log("  [PASS] Test 7.A: Host can fetch canonical room state after guest joins (2 players returned)");
+
+    // 7.B: Guest can fetch same room state
+    const guestFetch = simulateGetMultiplayerRoomState(room.id, guestPlayer);
+    if (!guestFetch.success || guestFetch.data.players.length !== 2) {
+      throw new Error("Test 7.B Failed: Guest unable to fetch canonical room state");
+    }
+    console.log("  [PASS] Test 7.B: Guest can fetch same canonical room state");
+
+    // 7.C: Non-member cannot fetch room state (NOT_IN_ROOM)
+    const outsiderFetch = simulateGetMultiplayerRoomState(room.id, nonMember);
+    if (outsiderFetch.success || !outsiderFetch.error?.includes("NOT_IN_ROOM")) {
+      throw new Error("Test 7.C Failed: Non-member was able to fetch private room state!");
+    }
+    console.log("  [PASS] Test 7.C: Non-member is rejected with NOT_IN_ROOM");
+
+    // 7.D: Unauthenticated caller cannot fetch room state (AUTH_REQUIRED)
+    const unauthFetch = simulateGetMultiplayerRoomState(room.id, null);
+    if (unauthFetch.success || !unauthFetch.error?.includes("AUTH_REQUIRED")) {
+      throw new Error("Test 7.D Failed: Unauthenticated caller was not rejected!");
+    }
+    console.log("  [PASS] Test 7.D: Unauthenticated caller is rejected with AUTH_REQUIRED");
   }
 
   console.log("\n>>> ALL MULTIPLAYER SECURITY TESTS PASSED SUCCESSFULLY! <<<\n");

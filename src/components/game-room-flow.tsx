@@ -220,7 +220,7 @@ export function GameRoomFlow({ game, onStart, initialCode = "" }: GameRoomFlowPr
   if (view === "host_lobby" && roomState) {
     const players = roomState.players;
     const guest = players.find((p) => p.role === "guest");
-    const canStart = players.length >= 2;
+    const canStart = players.length >= 2 || roomState.room.status === "ready";
 
     return (
       <section
