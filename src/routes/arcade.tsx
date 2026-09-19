@@ -6,6 +6,7 @@ import {
   Crown,
   Eye,
   Gavel,
+  Loader2,
   Play,
   Skull,
   Sparkles,
@@ -14,9 +15,14 @@ import {
   Vote,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import "@/billion-auction.css";
 import { GameRoomFlow, type PlayMode } from "@/components/game-room-flow";
-import type { MultiplayerRoomState } from "@/lib/multiplayer-service";
+import {
+  submitArcadeAction,
+  subscribeToRoom,
+  type MultiplayerRoomState,
+} from "@/lib/multiplayer-service";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -30,7 +36,12 @@ import {
   type BillionAuctionPlayer,
   type BillionRole,
 } from "@/lib/billion-auction-players";
-import { BillionAuctionGame } from "@/components/billion-auction-game";
+import {
+  BillionAuctionGame,
+  labelRole,
+  MiniPitch,
+  PlayerCard,
+} from "@/components/billion-auction-game";
 import { createLetterBoard, findWinningPath, type HuroofOwner } from "@/lib/huroof-engine";
 
 export const Route = createFileRoute("/arcade")({
@@ -64,6 +75,7 @@ function ArcadeSession({ game, initialRoomCode }: { game: ArcadeGame; initialRoo
   const [stage, setStage] = useState<Stage>("room");
   const [mode, setMode] = useState<PlayMode>("single");
   const [session, setSession] = useState<GameSession>(EMPTY_SESSION);
+  const [roomState, setRoomState] = useState<MultiplayerRoomState | null>(null);
 
   useEffect(() => {
     try {
@@ -73,18 +85,35 @@ function ArcadeSession({ game, initialRoomCode }: { game: ArcadeGame; initialRoo
     }
   }, [game.slug]);
 
+  // Keep room state synchronized in real-time when in online multiplayer mode
+  useEffect(() => {
+    if (mode !== "online" || !roomState?.room.id) return;
+    const roomId = roomState.room.id;
+    const unsubscribe = subscribeToRoom(roomId, (updatedState) => {
+      setRoomState(updatedState);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [mode, roomState?.room.id]);
+
   function startRoom(
     selectedMode: PlayMode,
     players: string[] = [],
-    roomState?: MultiplayerRoomState,
+    initialRoomState?: MultiplayerRoomState,
   ) {
     setMode(selectedMode);
     if (game.slug === "taqha") {
-      if (roomState?.room.code) {
-        navigate({ to: "/play", search: { room: roomState.room.code } });
+      if (initialRoomState?.room.code) {
+        navigate({ to: "/play", search: { room: initialRoomState.room.code } });
         return;
       }
       navigate({ to: "/create-game" });
+      return;
+    }
+    if (selectedMode === "online" && initialRoomState) {
+      setRoomState(initialRoomState);
+      setStage("play");
       return;
     }
     setSession((current) => ({ ...current, players }));
@@ -134,6 +163,13 @@ function ArcadeSession({ game, initialRoomCode }: { game: ArcadeGame; initialRoo
               setSession(nextSession);
               setStage("play");
             }}
+          />
+        ) : mode === "online" && roomState ? (
+          <OnlineArcadeGame
+            game={game}
+            roomState={roomState}
+            currentUserId={user.id}
+            onStateUpdate={(updated) => setRoomState(updated)}
           />
         ) : (
           <GamePlay game={game.slug} mode={mode} session={session} />
@@ -1440,6 +1476,794 @@ function ScoreHex({
       <small>{name}</small>
       <strong>{score}</strong>
     </div>
+  );
+}
+
+// =============================================================================
+// ONLINE MULTIPLAYER ARCADE GAME CONTROLLER & SUB-COMPONENTS
+// =============================================================================
+
+function OnlineArcadeGame({
+  game,
+  roomState,
+  currentUserId,
+  onStateUpdate,
+}: {
+  game: ArcadeGame;
+  roomState: MultiplayerRoomState;
+  currentUserId: string;
+  onStateUpdate: (state: MultiplayerRoomState) => void;
+}) {
+  if (game.slug === "huroof") {
+    return (
+      <OnlineHuroofPlay
+        roomState={roomState}
+        currentUserId={currentUserId}
+        onStateUpdate={onStateUpdate}
+      />
+    );
+  }
+  if (game.slug === "auction") {
+    return (
+      <OnlineAuctionPlay
+        roomState={roomState}
+        currentUserId={currentUserId}
+        onStateUpdate={onStateUpdate}
+      />
+    );
+  }
+  if (game.slug === "auction-billion") {
+    return (
+      <OnlineBillionAuctionGame
+        roomState={roomState}
+        currentUserId={currentUserId}
+        onStateUpdate={onStateUpdate}
+      />
+    );
+  }
+  return null;
+}
+
+function OnlineHuroofPlay({
+  roomState,
+  currentUserId,
+  onStateUpdate,
+}: {
+  roomState: MultiplayerRoomState;
+  currentUserId: string;
+  onStateUpdate: (state: MultiplayerRoomState) => void;
+}) {
+  const session = (roomState.room.session_data || {}) as {
+    size?: 4 | 5 | 6;
+    rounds?: number;
+    roundWins?: [number, number];
+    currentRound?: number;
+    turn?: 0 | 1;
+    teams?: [string, string];
+    letters?: string[];
+    owners?: HuroofOwner[];
+    selected?: number | null;
+    winningPath?: number[];
+    roundWinner?: 0 | 1 | null;
+    gameWinner?: 0 | 1 | null;
+    finished?: boolean;
+  };
+
+  const size = (session.size as 4 | 5 | 6) || 5;
+  const letters = session.letters || [];
+  const owners = session.owners || Array(size * size).fill(null);
+  const turn = session.turn ?? 0;
+  const selected = typeof session.selected === "number" ? session.selected : null;
+  const winningPath = session.winningPath || [];
+  const roundWinner = session.roundWinner ?? null;
+  const gameWinner = session.gameWinner ?? null;
+  const roundWins = session.roundWins || [0, 0];
+  const currentRound = session.currentRound || 1;
+  const rounds = session.rounds || 1;
+  const teams = session.teams || [roomState.room.host_name, "اللاعب الثاني"];
+
+  const [submitting, setSubmitting] = useState(false);
+  const [answerOpen, setAnswerOpen] = useState(false);
+
+  // Identify player role & turn
+  const myPlayer = roomState.players.find((p) => p.user_id === currentUserId);
+  const myIndex: 0 | 1 = myPlayer?.player_index ?? 0;
+  const isMyTurn = myIndex === turn;
+  const isHost = myPlayer?.role === "host";
+
+  const question =
+    selected === null || !letters[selected]
+      ? null
+      : (HUROOF_QUESTIONS[letters[selected]] ?? {
+          question: `اذكر كلمة عربية تبدأ بحرف ${letters[selected]}`,
+          answer: "يقبلها الطرفان",
+        });
+
+  async function handleSelect(index: number) {
+    if (submitting || roundWinner !== null) return;
+    if (!isMyTurn) {
+      toast.error("ليس دورك لاختيار الخلية؛ بانتظار الخصم");
+      return;
+    }
+    if (owners[index]) return;
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "huroof_select_cell", {
+      index,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error(error);
+    } else if (data) {
+      onStateUpdate(data);
+    }
+  }
+
+  async function handleClaim() {
+    if (submitting || selected === null) return;
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "huroof_claim_cell");
+    setSubmitting(false);
+    setAnswerOpen(false);
+    if (error) {
+      toast.error(error);
+    } else if (data) {
+      onStateUpdate(data);
+    }
+  }
+
+  async function handleMiss() {
+    if (submitting || selected === null) return;
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "huroof_miss_cell");
+    setSubmitting(false);
+    setAnswerOpen(false);
+    if (error) {
+      toast.error(error);
+    } else if (data) {
+      onStateUpdate(data);
+    }
+  }
+
+  return (
+    <section className="huroof-stage mx-auto w-full max-w-none">
+      <header className="huroof-topbar">
+        <ScoreHex
+          team="A"
+          name={`${teams[0]} ${myIndex === 0 ? "(أنت)" : ""}`}
+          score={String(roundWins[0])}
+          active={turn === 0}
+        />
+        <div>
+          <span>حروف · تحدي مباشر</span>
+          <strong>
+            الجولة {currentRound} من {rounds}
+          </strong>
+          <small className={isMyTurn ? "text-success font-bold" : "text-muted-foreground"}>
+            {isMyTurn ? "دورك الآن!" : `دور ${teams[turn]}`}
+          </small>
+        </div>
+        <ScoreHex
+          team="B"
+          name={`${teams[1]} ${myIndex === 1 ? "(أنت)" : ""}`}
+          score={String(roundWins[1])}
+          active={turn === 1}
+        />
+      </header>
+
+      <div className="huroof-board-shell">
+        <i className="huroof-edge huroof-edge-top" aria-label="هدف الأخضر: أعلى اللوحة" />
+        <i className="huroof-edge huroof-edge-bottom" aria-label="هدف الأخضر: أسفل اللوحة" />
+        <i className="huroof-edge huroof-edge-right" aria-label="هدف العنابي: يمين اللوحة" />
+        <i className="huroof-edge huroof-edge-left" aria-label="هدف العنابي: يسار اللوحة" />
+        <SuppliedHuroofGrid
+          size={size}
+          letters={letters}
+          owners={owners}
+          selected={selected}
+          winningPath={winningPath}
+          disabled={Boolean(roundWinner !== null || !isMyTurn || submitting)}
+          onChoose={handleSelect}
+        />
+      </div>
+
+      {roundWinner !== null ? (
+        <div className="huroof-win-panel animate-in zoom-in-95">
+          <Crown className="mx-auto h-12 w-12 text-gold" />
+          <h1>فريق {roundWinner === 0 ? teams[0] : teams[1]} وصل المسار!</h1>
+          <p>
+            {gameWinner !== null
+              ? `مبروك! فاز ${teams[gameWinner]} بالمباراة كاملة!`
+              : `انتهت الجولة ${currentRound}.`}
+          </p>
+          <div>
+            <Button asChild variant="outline">
+              <Link to="/games">كل الألعاب</Link>
+            </Button>
+          </div>
+        </div>
+      ) : selected === null ? (
+        <footer className="huroof-actionbar">
+          <span className={isMyTurn ? "text-gold font-black" : "text-muted-foreground"}>
+            {isMyTurn
+              ? "🎯 دورك الآن — انقر على أي خلية حرة لفتح السؤال"
+              : `⏳ بانتظار قيام ${teams[turn]} باختيار خلية...`}
+          </span>
+        </footer>
+      ) : question ? (
+        <section className="huroof-question-stage animate-in fade-in">
+          <span>حرف: {letters[selected]}</span>
+          <h1>{question.question}</h1>
+          {answerOpen && (
+            <p className="huroof-answer">
+              الإجابة: <b>{question.answer}</b>
+            </p>
+          )}
+          <div className="huroof-question-actions">
+            <Button variant="outline" size="sm" onClick={() => setAnswerOpen((val) => !val)}>
+              {answerOpen ? "إخفاء الإجابة" : "إظهار الإجابة"}
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700"
+              disabled={submitting || (!isMyTurn && !isHost)}
+              onClick={() => void handleClaim()}
+            >
+              ✓ إجابة صحيحة (امتلاك الخلية)
+            </Button>
+            <Button
+              variant="outline"
+              disabled={submitting || (!isMyTurn && !isHost)}
+              onClick={() => void handleMiss()}
+            >
+              ✗ إجابة خاطئة (تمرير الدور)
+            </Button>
+          </div>
+          {!isMyTurn && !isHost && (
+            <p className="text-xs text-muted-foreground mt-2">
+              الطرف الذي عليه الدور أو المضيف يقوم بتثبيت النتيجة.
+            </p>
+          )}
+        </section>
+      ) : null}
+    </section>
+  );
+}
+
+function OnlineAuctionPlay({
+  roomState,
+  currentUserId,
+  onStateUpdate,
+}: {
+  roomState: MultiplayerRoomState;
+  currentUserId: string;
+  onStateUpdate: (state: MultiplayerRoomState) => void;
+}) {
+  const session = (roomState.room.session_data || {}) as {
+    rounds?: number;
+    currentRound?: number;
+    scores?: [number, number];
+    phase?: "pick" | "bid" | "challenge" | "result";
+    questionIndex?: number;
+    question?: { prompt: string; suggestedBid: number; answers: string[] };
+    bid?: number;
+    bidder?: 0 | 1;
+    lastBidder?: 0 | 1 | null;
+    winner?: 0 | 1 | null;
+    correct?: number;
+    markedAnswers?: string[];
+    lastAward?: number;
+    teams?: [string, string];
+    finished?: boolean;
+  };
+
+  const phase = session.phase || "pick";
+  const round = session.currentRound || 1;
+  const rounds = session.rounds || 3;
+  const scores = session.scores || [0, 0];
+  const question = session.question || { prompt: "السؤال", suggestedBid: 3, answers: [] };
+  const bid = session.bid || 3;
+  const bidder = session.bidder ?? 0;
+  const lastBidder = session.lastBidder ?? null;
+  const winner = session.winner ?? null;
+  const correct = session.correct || 0;
+  const markedAnswers = session.markedAnswers || [];
+  const lastAward = session.lastAward || 0;
+  const teams = session.teams || [roomState.room.host_name, "اللاعب الثاني"];
+  const finished = session.finished || false;
+
+  const [customBid, setCustomBid] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [seconds, setSeconds] = useState(45);
+
+  const myPlayer = roomState.players.find((p) => p.user_id === currentUserId);
+  const myIndex: 0 | 1 = myPlayer?.player_index ?? 0;
+  const isMyBid = myIndex === bidder;
+  const answerLimit = question.answers.length;
+
+  useEffect(() => {
+    if (phase !== "challenge" || seconds <= 0) return;
+    const id = window.setInterval(() => setSeconds((val) => val - 1), 1000);
+    return () => window.clearInterval(id);
+  }, [phase, seconds]);
+
+  async function handleBeginBid() {
+    if (submitting) return;
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "auction_begin_bid");
+    setSubmitting(false);
+    if (error) toast.error(error);
+    else if (data) onStateUpdate(data);
+  }
+
+  async function handlePlaceBid(amount: number) {
+    if (submitting || !Number.isInteger(amount) || amount <= bid || amount > answerLimit) {
+      toast.error(`المزايدة يجب أن تكون بين ${bid + 1} و ${answerLimit}`);
+      return;
+    }
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "auction_place_bid", {
+      amount,
+    });
+    setSubmitting(false);
+    setCustomBid("");
+    if (error) toast.error(error);
+    else if (data) onStateUpdate(data);
+  }
+
+  async function handlePass() {
+    if (submitting) return;
+    setSubmitting(true);
+    setSeconds(Math.max(30, bid * 5));
+    const { data, error } = await submitArcadeAction(roomState.room.id, "auction_pass");
+    setSubmitting(false);
+    if (error) toast.error(error);
+    else if (data) onStateUpdate(data);
+  }
+
+  async function handleToggleAnswer(answer: string) {
+    if (submitting || phase !== "challenge") return;
+    const { data, error } = await submitArcadeAction(roomState.room.id, "auction_toggle_answer", {
+      answer,
+    });
+    if (error) toast.error(error);
+    else if (data) onStateUpdate(data);
+  }
+
+  async function handleFinishChallenge() {
+    if (submitting) return;
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "auction_finish_challenge");
+    setSubmitting(false);
+    if (error) toast.error(error);
+    else if (data) onStateUpdate(data);
+  }
+
+  async function handleNextRound() {
+    if (submitting) return;
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "auction_next_round");
+    setSubmitting(false);
+    if (error) toast.error(error);
+    else if (data) onStateUpdate(data);
+  }
+
+  if (phase === "pick") {
+    return (
+      <section className="auction-play mx-auto max-w-4xl rounded-[2rem] p-8 text-center">
+        <span className="eyebrow">
+          مزاد الأسئلة · الجولة {round} من {rounds}
+        </span>
+        <h1 className="mx-auto mt-6 max-w-3xl text-4xl leading-relaxed">{question.prompt}</h1>
+        <p className="mt-5 text-muted-foreground">
+          لا تظهر الإجابات الآن؛ كل طرف يزايد على عدد الإجابات التي يستطيع تقديمها.
+        </p>
+        <div className="mt-8">
+          <Button disabled={submitting} onClick={() => void handleBeginBid()}>
+            <Gavel /> ابدأ المزايدة
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  if (phase === "bid") {
+    return (
+      <section className="auction-play mx-auto max-w-3xl rounded-[2rem] p-8 text-center">
+        <span className="eyebrow">{question.prompt}</span>
+        <Gavel className="auction-gavel mx-auto mt-5" />
+        <h1 className="mt-4">
+          الدور على {teams[bidder]} {myIndex === bidder ? "(أنت)" : ""}
+        </h1>
+        <div className="auction-bid-number">
+          {bid}
+          <small>إجابة</small>
+        </div>
+        <p className="mt-3 text-muted-foreground">
+          الحد الأقصى لهذا السؤال: {answerLimit} إجابة. زايدوا برقم أعلى أو مرّروا للطرف الآخر.
+        </p>
+        {isMyBid ? (
+          <div className="auction-bid-controls mt-7">
+            <Button
+              disabled={submitting || bid + 1 > answerLimit}
+              onClick={() => void handlePlaceBid(bid + 1)}
+            >
+              +١
+            </Button>
+            <Button
+              disabled={submitting || bid + 2 > answerLimit}
+              onClick={() => void handlePlaceBid(bid + 2)}
+            >
+              +٢
+            </Button>
+            <Button
+              disabled={submitting || bid + 5 > answerLimit}
+              onClick={() => void handlePlaceBid(bid + 5)}
+            >
+              +٥
+            </Button>
+            <Input
+              inputMode="numeric"
+              type="number"
+              min={bid + 1}
+              max={answerLimit}
+              value={customBid}
+              onChange={(e) => setCustomBid(e.target.value)}
+              placeholder={`من ${bid + 1} إلى ${answerLimit}`}
+              className="w-28 text-center"
+            />
+            <Button
+              variant="outline"
+              disabled={submitting || bid >= answerLimit || !customBid}
+              onClick={() => void handlePlaceBid(Number(customBid))}
+            >
+              زايد
+            </Button>
+            <Button variant="outline" disabled={submitting} onClick={() => void handlePass()}>
+              أمرّر
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-6 p-4 rounded-xl border border-gold/30 bg-gold/5 flex items-center justify-center gap-2 text-gold font-bold text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>بانتظار مزايدة {teams[bidder]} من جواله...</span>
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  if (phase === "challenge") {
+    return (
+      <section className="auction-play mx-auto max-w-5xl rounded-[2rem] p-8 text-center">
+        <span className="eyebrow">{question.prompt}</span>
+        <h1 className="mt-4">
+          {teams[winner ?? 0]} التزم بـ {bid} إجابات
+        </h1>
+        <div className="auction-timer">{seconds}</div>
+        <p className="mt-2 font-bold text-gold">
+          الإجابات الصحيحة: {correct} من {bid}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          علّموا الإجابات التي تسمعونها لتوثيق النتيجة فوراً على الجهازين.
+        </p>
+        <div className="auction-answer-list mt-7">
+          {question.answers.map((ans) => (
+            <button
+              key={ans}
+              type="button"
+              className={markedAnswers.includes(ans) ? "is-marked" : ""}
+              onClick={() => void handleToggleAnswer(ans)}
+            >
+              <Check /> {ans}
+            </button>
+          ))}
+        </div>
+        <div className="mt-6 flex justify-center gap-3">
+          <Button
+            onClick={() => void handleFinishChallenge()}
+            disabled={submitting || (correct < bid && seconds > 0)}
+          >
+            ثبّت النتيجة
+          </Button>
+          {seconds === 0 && (
+            <Button variant="outline" onClick={() => void handleFinishChallenge()}>
+              انتهى الوقت
+            </Button>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  // Result phase
+  return (
+    <section className="auction-play mx-auto max-w-xl rounded-[2rem] p-8 text-center">
+      <Trophy className="mx-auto h-10 w-10 text-gold" />
+      <h1 className="mt-4">النتيجة</h1>
+      <p className="mt-3 text-lg">
+        {correct >= bid
+          ? `${teams[winner ?? 0]} وفّى بالمزايدة!`
+          : `${teams[(winner ?? 0) === 0 ? 1 : 0]} كسب التحدي.`}
+      </p>
+      <p className="mt-2 font-bold text-gold">
+        {lastAward} {lastAward === 1 ? "نقطة" : "نقاط"} لهذه الجولة · كل 10 إجابات = نقطة
+      </p>
+      <div className="auction-scoreboard mt-4">
+        <strong>
+          {teams[0]} {myIndex === 0 ? "(أنت)" : ""} <b>{scores[0]}</b>
+        </strong>
+        <strong>
+          {teams[1]} {myIndex === 1 ? "(أنت)" : ""} <b>{scores[1]}</b>
+        </strong>
+      </div>
+      {!finished && round < rounds ? (
+        <Button className="mt-7" disabled={submitting} onClick={() => void handleNextRound()}>
+          الجولة التالية
+        </Button>
+      ) : (
+        <div className="mt-7">
+          <p className="font-bold text-gold mb-3">انتهت الجولات!</p>
+          <Button asChild>
+            <Link to="/games">كل الألعاب</Link>
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function OnlineBillionAuctionGame({
+  roomState,
+  currentUserId,
+  onStateUpdate,
+}: {
+  roomState: MultiplayerRoomState;
+  currentUserId: string;
+  onStateUpdate: (state: MultiplayerRoomState) => void;
+}) {
+  const session = (roomState.room.session_data || {}) as {
+    rounds?: number;
+    currentRound?: number;
+    budgets?: [number, number];
+    squads?: [BillionAuctionPlayer[], BillionAuctionPlayer[]];
+    bid?: number;
+    bidder?: 0 | 1;
+    lastBidder?: 0 | 1 | null;
+    passes?: number;
+    pairs?: Array<{
+      role: Exclude<BillionRole, "COACH">;
+      publicPlayer: BillionAuctionPlayer;
+      hiddenPlayer: BillionAuctionPlayer;
+    }>;
+    resolution?: {
+      winner: 0 | 1;
+      loser: 0 | 1;
+      paid: number;
+      hiddenPlayer: BillionAuctionPlayer;
+    } | null;
+    finished?: boolean;
+    matchResult?: {
+      score: [number, number];
+      events: Array<{ minute: number; team: 0 | 1; text: string; goal?: boolean }>;
+    } | null;
+    teams?: [string, string];
+  };
+
+  const round = session.currentRound ?? 0;
+  const budgets = session.budgets || [200, 200];
+  const squads = session.squads || [[], []];
+  const bid = session.bid || 0;
+  const bidder = session.bidder ?? 0;
+  const lastBidder = session.lastBidder ?? null;
+  const pair = session.pairs?.[round];
+  const resolution = session.resolution ?? null;
+  const finished = session.finished || false;
+  const matchResult = session.matchResult ?? null;
+  const teams = session.teams || [roomState.room.host_name, "اللاعب الثاني"];
+
+  const [customBid, setCustomBid] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const myPlayer = roomState.players.find((p) => p.user_id === currentUserId);
+  const myIndex: 0 | 1 = myPlayer?.player_index ?? 0;
+  const isMyBid = myIndex === bidder;
+
+  const minimum = pair ? Math.max(1, Math.ceil(pair.publicPlayer.price / 10)) : 0;
+
+  async function handleBid(amount: number) {
+    if (submitting || !pair || resolution) return;
+    if (
+      !Number.isInteger(amount) ||
+      amount < minimum ||
+      amount <= bid ||
+      amount > budgets[bidder]
+    ) {
+      toast.error(`المزايدة يجب أن تكون بين ${Math.max(minimum, bid + 1)}M و ${budgets[bidder]}M`);
+      return;
+    }
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "billion_bid", { amount });
+    setSubmitting(false);
+    setCustomBid("");
+    if (error) toast.error(error);
+    else if (data) onStateUpdate(data);
+  }
+
+  async function handlePass() {
+    if (submitting || !pair || resolution) return;
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "billion_pass");
+    setSubmitting(false);
+    if (error) toast.error(error);
+    else if (data) onStateUpdate(data);
+  }
+
+  async function handleNextRound() {
+    if (submitting) return;
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "billion_next_round");
+    setSubmitting(false);
+    if (error) toast.error(error);
+    else if (data) onStateUpdate(data);
+  }
+
+  if (finished && matchResult) {
+    return (
+      <section className="billion-v2-result">
+        <span className="eyebrow">تحليل التشكيلتين · نتيجة المباراة التكتيكية</span>
+        <h1>
+          {teams[0]} <b>{matchResult.score[0]} - {matchResult.score[1]}</b> {teams[1]}
+        </h1>
+        <div className="billion-v2-pitches">
+          <MiniPitch
+            name={`${teams[0]} ${myIndex === 0 ? "(أنت)" : ""}`}
+            budget={budgets[0]}
+            squad={squads[0]}
+            side={0}
+          />
+          <MiniPitch
+            name={`${teams[1]} ${myIndex === 1 ? "(أنت)" : ""}`}
+            budget={budgets[1]}
+            squad={squads[1]}
+            side={1}
+          />
+        </div>
+        <div className="billion-v2-timeline">
+          {matchResult.events.map((event, idx) => (
+            <p key={idx} className={event.goal ? "is-goal" : ""}>
+              <b>{event.minute}'</b> {event.text}
+            </p>
+          ))}
+        </div>
+        <div className="mt-8 text-center">
+          <Button asChild>
+            <Link to="/games">كل الألعاب</Link>
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  if (!pair) {
+    return (
+      <div className="mx-auto max-w-md py-16 text-center text-muted-foreground">
+        جاري مزامنة المزاد...
+      </div>
+    );
+  }
+
+  const roleLabel = labelRole(pair.role);
+
+  return (
+    <section className="billion-v2-game">
+      <header className="billion-v2-title">
+        <span className="eyebrow">
+          مزاد المليار · الجولة {round + 1}/7 · مركز {roleLabel}
+        </span>
+        <p>البطاقة المخفية لن تظهر إلا بعد انتهاء المزايدة، وهي من نفس المركز دائماً.</p>
+      </header>
+
+      <div className="billion-v2-layout">
+        <MiniPitch
+          name={`${teams[0]} ${myIndex === 0 ? "(أنت)" : ""}`}
+          budget={budgets[0]}
+          squad={squads[0]}
+          side={0}
+        />
+
+        <div className="billion-v2-desk">
+          {resolution ? (
+            <>
+              <div className="billion-v2-reveal">
+                <div>
+                  <PlayerCard player={pair.publicPlayer} />
+                  <small>
+                    {teams[resolution.winner]} دفع {resolution.paid}M
+                  </small>
+                </div>
+                <div>
+                  <PlayerCard player={resolution.hiddenPlayer} />
+                  <small>{teams[resolution.loser]} أخذها مجاناً</small>
+                </div>
+              </div>
+              <Button disabled={submitting} onClick={() => void handleNextRound()}>
+                {round === 6 ? "حلّل المباراة" : "الجولة التالية"} <Play />
+              </Button>
+            </>
+          ) : (
+            <>
+              <span className="billion-v2-role">{roleLabel}</span>
+              <PlayerCard player={pair.publicPlayer} />
+              <div className="billion-v2-hidden-note">
+                <PlayerCard hidden />
+              </div>
+              <div className="billion-v2-bid">
+                <strong>{bid || minimum}M</strong>
+                <small>
+                  {lastBidder === null
+                    ? `البداية من ${minimum}M`
+                    : `آخر مزايدة من ${teams[lastBidder]}`}
+                </small>
+              </div>
+
+              <p>
+                الدور على{" "}
+                <b>
+                  {teams[bidder]} {isMyBid ? "(أنت)" : ""}
+                </b>
+              </p>
+
+              {isMyBid ? (
+                <div className="auction-bid-controls">
+                  <Button
+                    disabled={submitting || budgets[bidder] < Math.max(minimum, bid + 5)}
+                    onClick={() => void handleBid(Math.max(minimum, bid + 5))}
+                  >
+                    <Gavel /> +٥M
+                  </Button>
+                  <Button
+                    disabled={submitting || budgets[bidder] < Math.max(minimum, bid + 10)}
+                    onClick={() => void handleBid(Math.max(minimum, bid + 10))}
+                  >
+                    +١٠M
+                  </Button>
+                  <Input
+                    type="number"
+                    min={Math.max(minimum, bid + 1)}
+                    max={budgets[bidder]}
+                    value={customBid}
+                    onChange={(e) => setCustomBid(e.target.value)}
+                    placeholder="اكتب مزايدتك"
+                    className="w-28 text-center"
+                  />
+                  <Button
+                    variant="outline"
+                    disabled={submitting || !customBid}
+                    onClick={() => void handleBid(Number(customBid))}
+                  >
+                    زايد
+                  </Button>
+                  <Button variant="outline" disabled={submitting} onClick={() => void handlePass()}>
+                    أمرّر
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-4 p-3 rounded-xl border border-gold/30 bg-gold/5 flex items-center justify-center gap-2 text-gold font-bold text-xs">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>بانتظار مزايدة {teams[bidder]}...</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <MiniPitch
+          name={`${teams[1]} ${myIndex === 1 ? "(أنت)" : ""}`}
+          budget={budgets[1]}
+          squad={squads[1]}
+          side={1}
+        />
+      </div>
+    </section>
   );
 }
 
