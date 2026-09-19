@@ -127,6 +127,24 @@ function testMigrationSecurityContract() {
   }
   console.log("  [PASS] Non-recursive RLS verified: room_players policy uses safe SECURITY DEFINER helper");
 
+  // Verify room_players delete policy allows self or room host only
+  const roomPlayersDeleteMatch = sql0019.match(
+    /CREATE POLICY "room_players_delete_policy" ON public\.room_players[\s\S]*?;/,
+  );
+  if (!roomPlayersDeleteMatch) {
+    throw new Error("Missing room_players_delete_policy in migration 0019");
+  }
+  const roomPlayersDeletePolicy = roomPlayersDeleteMatch[0];
+  if (roomPlayersDeletePolicy.includes("public.is_room_member(room_id)")) {
+    throw new Error(
+      "Security vulnerability: room_players_delete_policy must not allow any room member to delete another player!",
+    );
+  }
+  if (!roomPlayersDeletePolicy.includes("r.host_id = auth.uid()")) {
+    throw new Error("room_players_delete_policy must allow room host to delete player rows");
+  }
+  console.log("  [PASS] Non-recursive secure DELETE RLS verified: only self or room host can delete player rows");
+
   // Verify get_multiplayer_room_state RPC
   if (
     !sql0019.includes("CREATE OR REPLACE FUNCTION public.get_multiplayer_room_state(p_room_id uuid)") &&
@@ -593,6 +611,45 @@ function runSecurityScenarios() {
       throw new Error("Test 7.D Failed: Unauthenticated caller was not rejected!");
     }
     console.log("  [PASS] Test 7.D: Unauthenticated caller is rejected with AUTH_REQUIRED");
+  }
+
+  // -------------------------------------------------------------
+  // Test 8.A - 8.C: room_players DELETE Authorization Verification
+  // -------------------------------------------------------------
+  {
+    const room = { id: "room-100", host_id: "user-host" };
+    const hostUser = "user-host";
+    const guestUser = "user-guest";
+
+    function canDeletePlayerRow(
+      targetPlayerUserId: string,
+      targetRoomId: string,
+      actingUserId: string,
+    ): boolean {
+      // Simulates:
+      // user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.rooms r WHERE r.id = room_players.room_id AND r.host_id = auth.uid())
+      const isSelf = targetPlayerUserId === actingUserId;
+      const isRoomHost = room.id === targetRoomId && room.host_id === actingUserId;
+      return isSelf || isRoomHost;
+    }
+
+    // 8.A: Guest can delete own player row
+    if (!canDeletePlayerRow(guestUser, room.id, guestUser)) {
+      throw new Error("Test 8.A Failed: Player could not delete their own row");
+    }
+    console.log("  [PASS] Test 8.A: Player can delete their own row (leave room)");
+
+    // 8.B: Host can delete guest player row
+    if (!canDeletePlayerRow(guestUser, room.id, hostUser)) {
+      throw new Error("Test 8.B Failed: Host could not remove guest from room");
+    }
+    console.log("  [PASS] Test 8.B: Host can remove guest player row from their room");
+
+    // 8.C: Guest CANNOT delete host player row
+    if (canDeletePlayerRow(hostUser, room.id, guestUser)) {
+      throw new Error("Security Failure: Guest was permitted to delete host player row!");
+    }
+    console.log("  [PASS] Test 8.C: Guest cannot delete host or other player's row");
   }
 
   console.log("\n>>> ALL MULTIPLAYER SECURITY TESTS PASSED SUCCESSFULLY! <<<\n");
