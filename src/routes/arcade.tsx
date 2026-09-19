@@ -1543,6 +1543,8 @@ function OnlineHuroofPlay({
     letters?: string[];
     owners?: HuroofOwner[];
     selected?: number | null;
+    questionPrompt?: string | null;
+    revealedAnswer?: string | null;
     winningPath?: number[];
     roundWinner?: 0 | 1 | null;
     gameWinner?: 0 | 1 | null;
@@ -1563,7 +1565,7 @@ function OnlineHuroofPlay({
   const teams = session.teams || [roomState.room.host_name, "اللاعب الثاني"];
 
   const [submitting, setSubmitting] = useState(false);
-  const [answerOpen, setAnswerOpen] = useState(false);
+  const [typedAnswer, setTypedAnswer] = useState("");
 
   // Identify player role & turn
   const myPlayer = roomState.players.find((p) => p.user_id === currentUserId);
@@ -1571,13 +1573,12 @@ function OnlineHuroofPlay({
   const isMyTurn = myIndex === turn;
   const isHost = myPlayer?.role === "host";
 
-  const question =
+  const questionText =
     selected === null || !letters[selected]
       ? null
-      : (HUROOF_QUESTIONS[letters[selected]] ?? {
-          question: `اذكر كلمة عربية تبدأ بحرف ${letters[selected]}`,
-          answer: "يقبلها الطرفان",
-        });
+      : session.questionPrompt ||
+        (HUROOF_QUESTIONS[letters[selected]]?.question ??
+          `اذكر كلمة عربية تبدأ بحرف ${letters[selected]}`);
 
   async function handleSelect(index: number) {
     if (submitting || roundWinner !== null) return;
@@ -1594,19 +1595,22 @@ function OnlineHuroofPlay({
     if (error) {
       toast.error(error);
     } else if (data) {
+      setTypedAnswer("");
       onStateUpdate(data);
     }
   }
 
-  async function handleClaim() {
-    if (submitting || selected === null) return;
+  async function handleSubmitAnswer() {
+    if (submitting || selected === null || !typedAnswer.trim()) return;
     setSubmitting(true);
-    const { data, error } = await submitArcadeAction(roomState.room.id, "huroof_claim_cell");
+    const { data, error } = await submitArcadeAction(roomState.room.id, "huroof_submit_answer", {
+      answer: typedAnswer.trim(),
+    });
     setSubmitting(false);
-    setAnswerOpen(false);
     if (error) {
       toast.error(error);
     } else if (data) {
+      setTypedAnswer("");
       onStateUpdate(data);
     }
   }
@@ -1616,10 +1620,10 @@ function OnlineHuroofPlay({
     setSubmitting(true);
     const { data, error } = await submitArcadeAction(roomState.room.id, "huroof_miss_cell");
     setSubmitting(false);
-    setAnswerOpen(false);
     if (error) {
       toast.error(error);
     } else if (data) {
+      setTypedAnswer("");
       onStateUpdate(data);
     }
   }
@@ -1689,38 +1693,63 @@ function OnlineHuroofPlay({
               : `⏳ بانتظار قيام ${teams[turn]} باختيار خلية...`}
           </span>
         </footer>
-      ) : question ? (
+      ) : questionText ? (
         <section className="huroof-question-stage animate-in fade-in">
           <span>حرف: {letters[selected]}</span>
-          <h1>{question.question}</h1>
-          {answerOpen && (
+          <h1>{questionText}</h1>
+          {session.revealedAnswer && (
             <p className="huroof-answer">
-              الإجابة: <b>{question.answer}</b>
+              الإجابة: <b>{session.revealedAnswer}</b>
             </p>
           )}
-          <div className="huroof-question-actions">
-            <Button variant="outline" size="sm" onClick={() => setAnswerOpen((val) => !val)}>
-              {answerOpen ? "إخفاء الإجابة" : "إظهار الإجابة"}
-            </Button>
-            <Button
-              className="bg-emerald-600 hover:bg-emerald-700"
-              disabled={submitting || (!isMyTurn && !isHost)}
-              onClick={() => void handleClaim()}
-            >
-              ✓ إجابة صحيحة (امتلاك الخلية)
-            </Button>
-            <Button
-              variant="outline"
-              disabled={submitting || (!isMyTurn && !isHost)}
-              onClick={() => void handleMiss()}
-            >
-              ✗ إجابة خاطئة (تمرير الدور)
-            </Button>
-          </div>
-          {!isMyTurn && !isHost && (
-            <p className="text-xs text-muted-foreground mt-2">
-              الطرف الذي عليه الدور أو المضيف يقوم بتثبيت النتيجة.
-            </p>
+
+          {isMyTurn ? (
+            <div className="mt-4 flex flex-col items-center gap-3 w-full max-w-md mx-auto">
+              <div className="flex gap-2 w-full">
+                <Input
+                  value={typedAnswer}
+                  onChange={(e) => setTypedAnswer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void handleSubmitAnswer();
+                  }}
+                  placeholder="اكتب إجابتك هنا..."
+                  className="text-center font-bold"
+                  disabled={submitting}
+                />
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700 shrink-0"
+                  disabled={submitting || !typedAnswer.trim()}
+                  onClick={() => void handleSubmitAnswer()}
+                >
+                  ✓ إرسال الإجابة
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={submitting}
+                onClick={() => void handleMiss()}
+              >
+                تخطي السؤال (تمرير الدور)
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-4 text-center">
+              <p className="text-sm font-bold text-gold">
+                ⏳ بانتظار إجابة {teams[turn]} من جواله...
+              </p>
+              {isHost && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  disabled={submitting}
+                  onClick={() => void handleMiss()}
+                >
+                  تخطي السؤال كـ مضيف
+                </Button>
+              )}
+            </div>
           )}
         </section>
       ) : null}
@@ -1743,7 +1772,7 @@ function OnlineAuctionPlay({
     scores?: [number, number];
     phase?: "pick" | "bid" | "challenge" | "result";
     questionIndex?: number;
-    question?: { prompt: string; suggestedBid: number; answers: string[] };
+    question?: { prompt: string; suggestedBid: number; answerCount?: number; answers?: string[] };
     bid?: number;
     bidder?: 0 | 1;
     lastBidder?: 0 | 1 | null;
@@ -1759,7 +1788,7 @@ function OnlineAuctionPlay({
   const round = session.currentRound || 1;
   const rounds = session.rounds || 3;
   const scores = session.scores || [0, 0];
-  const question = session.question || { prompt: "السؤال", suggestedBid: 3, answers: [] };
+  const question = session.question || { prompt: "السؤال", suggestedBid: 3, answerCount: 10 };
   const bid = session.bid || 3;
   const bidder = session.bidder ?? 0;
   const lastBidder = session.lastBidder ?? null;
@@ -1771,13 +1800,16 @@ function OnlineAuctionPlay({
   const finished = session.finished || false;
 
   const [customBid, setCustomBid] = useState("");
+  const [typedAnswer, setTypedAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [seconds, setSeconds] = useState(45);
 
   const myPlayer = roomState.players.find((p) => p.user_id === currentUserId);
   const myIndex: 0 | 1 = myPlayer?.player_index ?? 0;
   const isMyBid = myIndex === bidder;
-  const answerLimit = question.answers.length;
+  const isHost = myPlayer?.role === "host";
+  const isWinner = winner !== null && myIndex === winner;
+  const answerLimit = question.answerCount || (question.answers?.length) || 10;
 
   useEffect(() => {
     if (phase !== "challenge" || seconds <= 0) return;
@@ -1819,13 +1851,19 @@ function OnlineAuctionPlay({
     else if (data) onStateUpdate(data);
   }
 
-  async function handleToggleAnswer(answer: string) {
-    if (submitting || phase !== "challenge") return;
-    const { data, error } = await submitArcadeAction(roomState.room.id, "auction_toggle_answer", {
-      answer,
+  async function handleSubmitAnswer() {
+    if (submitting || phase !== "challenge" || !typedAnswer.trim()) return;
+    setSubmitting(true);
+    const { data, error } = await submitArcadeAction(roomState.room.id, "auction_submit_answer", {
+      answer: typedAnswer.trim(),
     });
-    if (error) toast.error(error);
-    else if (data) onStateUpdate(data);
+    setSubmitting(false);
+    if (error) {
+      toast.error(error);
+    } else if (data) {
+      setTypedAnswer("");
+      onStateUpdate(data);
+    }
   }
 
   async function handleFinishChallenge() {
@@ -1849,18 +1887,41 @@ function OnlineAuctionPlay({
   if (phase === "pick") {
     return (
       <section className="auction-play mx-auto max-w-4xl rounded-[2rem] p-8 text-center">
-        <span className="eyebrow">
-          مزاد الأسئلة · الجولة {round} من {rounds}
-        </span>
-        <h1 className="mx-auto mt-6 max-w-3xl text-4xl leading-relaxed">{question.prompt}</h1>
-        <p className="mt-5 text-muted-foreground">
-          لا تظهر الإجابات الآن؛ كل طرف يزايد على عدد الإجابات التي يستطيع تقديمها.
+        <header className="flex justify-between items-center mb-6 px-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-muted-foreground">{teams[0]}</span>
+            <span className="px-2 py-0.5 rounded-lg bg-surface-2 font-black text-sm text-foreground">
+              {scores[0]}
+            </span>
+          </div>
+          <span className="eyebrow">
+            مزاد الأسئلة · الجولة {round} من {rounds}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-lg bg-surface-2 font-black text-sm text-foreground">
+              {scores[1]}
+            </span>
+            <span className="text-xs font-bold text-muted-foreground">{teams[1]}</span>
+          </div>
+        </header>
+
+        <h1 className="mx-auto mt-4 max-w-3xl text-3xl font-black leading-relaxed">
+          {question.prompt}
+        </h1>
+        <p className="mt-4 text-sm text-muted-foreground">
+          الحد الأقصى للإجابات المتاحة: {answerLimit} إجابة. زايدوا بالعدد الذي تستطيعون ذكره!
         </p>
-        <div className="mt-8">
-          <Button disabled={submitting} onClick={() => void handleBeginBid()}>
-            <Gavel /> ابدأ المزايدة
+
+        {isHost ? (
+          <Button className="mt-8 gap-2" disabled={submitting} onClick={() => void handleBeginBid()}>
+            <Gavel className="h-4 w-4" /> ابدأ المزايدة الآن
           </Button>
-        </div>
+        ) : (
+          <div className="mt-8 p-4 rounded-xl border border-gold/30 bg-gold/5 flex items-center justify-center gap-2 text-gold font-bold text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>بانتظار قيام المضيف ببدء المزايدة...</span>
+          </div>
+        )}
       </section>
     );
   }
@@ -1871,15 +1932,16 @@ function OnlineAuctionPlay({
         <span className="eyebrow">{question.prompt}</span>
         <Gavel className="auction-gavel mx-auto mt-5" />
         <h1 className="mt-4">
-          الدور على {teams[bidder]} {myIndex === bidder ? "(أنت)" : ""}
+          الدور على {teams[bidder]} {isMyBid ? "(أنت)" : ""}
         </h1>
         <div className="auction-bid-number">
           {bid}
           <small>إجابة</small>
         </div>
         <p className="mt-3 text-muted-foreground">
-          الحد الأقصى لهذا السؤال: {answerLimit} إجابة. زايدوا برقم أعلى أو مرّروا للطرف الآخر.
+          الحد الأقصى لهذا السؤال: {answerLimit} إجابة. زايدوا برقم أعلى أو مرّروا للطرف الثاني.
         </p>
+
         {isMyBid ? (
           <div className="auction-bid-controls mt-7">
             <Button
@@ -1940,32 +2002,72 @@ function OnlineAuctionPlay({
         </h1>
         <div className="auction-timer">{seconds}</div>
         <p className="mt-2 font-bold text-gold">
-          الإجابات الصحيحة: {correct} من {bid}
+          الإجابات المقبولة: {correct} من {bid}
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          علّموا الإجابات التي تسمعونها لتوثيق النتيجة فوراً على الجهازين.
-        </p>
-        <div className="auction-answer-list mt-7">
-          {question.answers.map((ans) => (
-            <button
-              key={ans}
-              type="button"
-              className={markedAnswers.includes(ans) ? "is-marked" : ""}
-              onClick={() => void handleToggleAnswer(ans)}
-            >
-              <Check /> {ans}
-            </button>
-          ))}
+
+        {/* Challenge Winner or Host Entry Form */}
+        {isWinner || isHost ? (
+          <div className="mt-5 max-w-md mx-auto">
+            <div className="flex gap-2">
+              <Input
+                value={typedAnswer}
+                onChange={(e) => setTypedAnswer(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleSubmitAnswer();
+                }}
+                placeholder="اكتب إجابة واضغط إضافة..."
+                className="text-center font-bold"
+                disabled={submitting}
+              />
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 shrink-0"
+                disabled={submitting || !typedAnswer.trim()}
+                onClick={() => void handleSubmitAnswer()}
+              >
+                ✓ إضافة إجابة
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              الخادم يتحقق من مطابقة الإجابة للقائمة السرية تلقائياً.
+            </p>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-gold font-bold">
+            ⏳ {teams[winner ?? 0]} يكتب ويقدم إجاباته من جواله الآن...
+          </p>
+        )}
+
+        {/* Display verified marked answers */}
+        <div className="flex flex-wrap gap-2 justify-center mt-6 min-h-[4rem] p-4 rounded-2xl border border-border/50 bg-surface-2/20">
+          {markedAnswers.length === 0 ? (
+            <p className="text-xs text-muted-foreground self-center">
+              لم تُوثّق أي إجابة صحيحة بعد في هذه الجولة.
+            </p>
+          ) : (
+            markedAnswers.map((ans) => (
+              <span
+                key={ans}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 text-emerald-400 font-bold text-sm animate-in zoom-in-95"
+              >
+                <Check className="h-4 w-4 text-emerald-400" /> {ans}
+              </span>
+            ))
+          )}
         </div>
+
         <div className="mt-6 flex justify-center gap-3">
           <Button
             onClick={() => void handleFinishChallenge()}
-            disabled={submitting || (correct < bid && seconds > 0)}
+            disabled={submitting || (!isWinner && !isHost) || (correct < bid && seconds > 0)}
           >
             ثبّت النتيجة
           </Button>
           {seconds === 0 && (
-            <Button variant="outline" onClick={() => void handleFinishChallenge()}>
+            <Button
+              variant="outline"
+              disabled={submitting || (!isWinner && !isHost)}
+              onClick={() => void handleFinishChallenge()}
+            >
               انتهى الوقت
             </Button>
           )}
@@ -2029,11 +2131,8 @@ function OnlineBillionAuctionGame({
     bidder?: 0 | 1;
     lastBidder?: 0 | 1 | null;
     passes?: number;
-    pairs?: Array<{
-      role: Exclude<BillionRole, "COACH">;
-      publicPlayer: BillionAuctionPlayer;
-      hiddenPlayer: BillionAuctionPlayer;
-    }>;
+    role?: Exclude<BillionRole, "COACH">;
+    publicPlayer?: BillionAuctionPlayer;
     resolution?: {
       winner: 0 | 1;
       loser: 0 | 1;
@@ -2054,7 +2153,8 @@ function OnlineBillionAuctionGame({
   const bid = session.bid || 0;
   const bidder = session.bidder ?? 0;
   const lastBidder = session.lastBidder ?? null;
-  const pair = session.pairs?.[round];
+  const role = session.role || "GK";
+  const publicPlayer = session.publicPlayer;
   const resolution = session.resolution ?? null;
   const finished = session.finished || false;
   const matchResult = session.matchResult ?? null;
@@ -2067,10 +2167,10 @@ function OnlineBillionAuctionGame({
   const myIndex: 0 | 1 = myPlayer?.player_index ?? 0;
   const isMyBid = myIndex === bidder;
 
-  const minimum = pair ? Math.max(1, Math.ceil(pair.publicPlayer.price / 10)) : 0;
+  const minimum = publicPlayer ? Math.max(1, Math.ceil(publicPlayer.price / 10)) : 0;
 
   async function handleBid(amount: number) {
-    if (submitting || !pair || resolution) return;
+    if (submitting || !publicPlayer || resolution) return;
     if (
       !Number.isInteger(amount) ||
       amount < minimum ||
@@ -2089,7 +2189,7 @@ function OnlineBillionAuctionGame({
   }
 
   async function handlePass() {
-    if (submitting || !pair || resolution) return;
+    if (submitting || !publicPlayer || resolution) return;
     setSubmitting(true);
     const { data, error } = await submitArcadeAction(roomState.room.id, "billion_pass");
     setSubmitting(false);
@@ -2143,7 +2243,7 @@ function OnlineBillionAuctionGame({
     );
   }
 
-  if (!pair) {
+  if (!publicPlayer) {
     return (
       <div className="mx-auto max-w-md py-16 text-center text-muted-foreground">
         جاري مزامنة المزاد...
@@ -2151,7 +2251,7 @@ function OnlineBillionAuctionGame({
     );
   }
 
-  const roleLabel = labelRole(pair.role);
+  const roleLabel = labelRole(role);
 
   return (
     <section className="billion-v2-game">
@@ -2175,7 +2275,7 @@ function OnlineBillionAuctionGame({
             <>
               <div className="billion-v2-reveal">
                 <div>
-                  <PlayerCard player={pair.publicPlayer} />
+                  <PlayerCard player={publicPlayer} />
                   <small>
                     {teams[resolution.winner]} دفع {resolution.paid}M
                   </small>
@@ -2192,7 +2292,7 @@ function OnlineBillionAuctionGame({
           ) : (
             <>
               <span className="billion-v2-role">{roleLabel}</span>
-              <PlayerCard player={pair.publicPlayer} />
+              <PlayerCard player={publicPlayer} />
               <div className="billion-v2-hidden-note">
                 <PlayerCard hidden />
               </div>
